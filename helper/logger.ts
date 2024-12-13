@@ -1,4 +1,5 @@
 import winston from "winston";
+import * as fs from "fs";
 
 const logger = winston.createLogger({
     level: 'info',
@@ -10,8 +11,7 @@ const logger = winston.createLogger({
     ),
     defaultMeta: { service: 'user-service' },
     transports: [
-        new winston.transports.File({ filename: './tmp/logs/error.log', level: 'error' }),
-        new winston.transports.File({ filename: './tmp/logs/combined.log' }),
+        new winston.transports.Console(),
     ],
 });
 
