@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id Int @unique @default(autoincrement()) @db.UnsignedInt
+  nik String @unique @db.VarChar(5)
+  nama String @db.VarChar(255)
+  email String @unique @db.VarChar(255)
+  password String @db.VarChar(255)
+  isAdmin Boolean
+  isActive Boolean
+  dateCreated DateTime @db.Date
+
+  idPermintaanCreated permintaan[] @relation("idPermintaanUsersCreatedFK")
+  idPermintaanConfirmed permintaan[] @relation("idPermintaanUsersConfirmedFK")
+
+  jabatanBagian usersonbagianonjabatan[]
+  idUserTerima nomormbr[]
+  idUser department_monitored[]
+
+  @@id([id, email, nik])
+}
+
+model department_monitored {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  idBagian Int @db.UnsignedInt
+  idUser Int @db.UnsignedInt
+
+  idUserFK users @relation(fields: [idUser], references: [id])
+  idBagianFK bagian @relation(fields: [idBagian], references: [id])
+}
+
+
+model permintaan {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  idCreated Int @db.UnsignedInt
+  idBagianCreated Int @db.UnsignedInt
+  timeCreated DateTime? @db.DateTime()
+  status Konfirmasi @default(PENDING)
+  reason String?
+  used Boolean @default(false)
+  idConfirmed Int? @db.UnsignedInt
+  timeConfirmed DateTime?
+
+  idDetailPermintanMBR detailpermintaanmbr[]
+  
+  idBagianCreatedFK bagian @relation(fields: [idBagianCreated], references: [id], onUpdate: Cascade)
+  idPermintaanUsersCreatedFK users? @relation("idPermintaanUsersCreatedFK", fields: [idCreated], references: [id])
+  idPermintaanUsersConfirmedFK users? @relation("idPermintaanUsersConfirmedFK", fields: [idConfirmed], references: [id])
+}
+
+model bagian {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  namaBagian String @unique @db.VarChar(255)
+  isActive Boolean
+
+  idBagianJabatan bagianonjabatan[]
+  idBagianProduk produk[]
+  idDepartmentMonitored department_monitored[]
+  permintaan permintaan[]
+}
+
+model jabatan {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  namaJabatan String @unique @db.VarChar(255)
+  isActive Boolean
+
+  idBagianJabatan bagianonjabatan[]
+}
+
+model bagianonjabatan {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  idBagian Int @db.UnsignedInt
+  idJabatan Int @db.UnsignedInt
+
+  idUsersonBagianonJabatan usersonbagianonjabatan[]
+
+  idBagianFK bagian @relation(fields: [idBagian], references: [id], onDelete: Cascade)
+  idJabatanFK jabatan @relation(fields: [idJabatan], references: [id])
+
+  @@unique([idBagian, idJabatan])
+}
+
+model usersonbagianonjabatan {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  idBagianJabatan Int @db.UnsignedInt
+  idUsers Int @db.UnsignedInt
+
+  idUsersFK users @relation(fields: [idUsers], references: [id], onDelete: Cascade)
+  idBagianJabatanFK bagianonjabatan @relation(fields: [idBagianJabatan], references: [id], onDelete: Cascade)
+  
+  @@unique([idBagianJabatan, idUsers])
+}
+
+model produk {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  namaProduk String @db.VarChar(255)
+  idKategori Int @db.UnsignedInt
+  idBagian Int @db.UnsignedInt
+  isActive Boolean @default(true)
+  
+  idKategoriFK kategori @relation(fields: [idKategori], references: [id])
+  idBagianFK bagian @relation(fields: [idBagian], references: [id])
+
+  @@unique([namaProduk, idKategori, idBagian])
+
+  idDetailPermintaan detailpermintaanmbr[]
+  // kategoriProduk kategorionproduk[]
+}
+
+model kategori {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  namaKategori String @unique @db.VarChar(255)
+  startingNumber String @db.VarChar(6)
+  
+  idKategori produk[]
+}
+
+model detailpermintaanmbr {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  group_id Int @db.Int
+  idPermintaanMbr Int @db.UnsignedInt
+  idProduk Int @db.UnsignedInt
+  nomorMBR String @db.VarChar(36)
+  tipeMBR TipeMBR @default(PO)
+  jumlah Int @db.Int
+
+  idNomorMBR nomormbr[]
+
+  idProdukFK produk? @relation(fields: [idProduk], references: [id])
+  idPermintaanMBR permintaan? @relation(fields: [idPermintaanMbr], references: [id], onDelete: Cascade)
+  // idPermintaanMbrFK permintaanonmbr @relation(fields: [idPermintaanMbr], references: [id])
+}
+
+model nomormbr {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  idDetailPermintaan Int @db.UnsignedInt
+  nomorUrut String @db.VarChar(6)
+  status Status @default(ACTIVE)
+  tahun Int @db.Year
+  tanggalKembali DateTime? @db.DateTime()
+  idUserTerima Int? @db.UnsignedInt
+  nomorBatch String? @db.VarChar(10)
+  
+  idUserTerimaFK users? @relation(fields: [idUserTerima], references: [id])
+  idDetailPermintaanFk detailpermintaanmbr? @relation(fields: [idDetailPermintaan], references: [id], onDelete: Cascade)
+
+  @@unique([nomorUrut, tahun])
+}
+
+enum Status {
+  ACTIVE
+  KEMBALI
+  BATAL
+}
+
+enum Konfirmasi {
+  PENDING
+  DITERIMA
+  DITOLAK
+}
+
+enum TipeMBR {
+  PO
+  PS
+}
+
+
+
+
+// model kategorionproduk {
+//   id Int @id @default(autoincrement()) @db.UnsignedInt
+//   idProduk Int @db.UnsignedInt
+//   idKategori Int @db.UnsignedInt
+
+//   kategoriProdukMbr kategorionprodukonmbr[]
+//   idBagianProduk bagianonproduk[]
+
+//   idProdukFK produk @relation(fields: [idProduk], references: [id])
+//   idkategoriFK kategori @relation(fields: [idKategori], references: [id])
+// }
+
+// model kategorionprodukonmbr {
+//   id Int @id @default(autoincrement()) @db.UnsignedInt
+//   idMbr Int @db.UnsignedInt
+//   idKategoriProduk Int @db.UnsignedInt
+
+//   permintaanMbr permintaanonmbr[]
+
+//   idKategoriProdukFK kategorionproduk @relation(fields: [idKategoriProduk], references: [id])
+//   idMbrFK mbr @relation(fields: [idMbr], references: [id])
+// }
+
+// model bagianonproduk {
+//   id Int @id @default(autoincrement()) @db.UnsignedInt
+//   idProduk Int @db.UnsignedInt
+//   idBagian Int @db.UnsignedInt
+
+//   idProdukFK produk @relation(fields: [idProduk], references: [id])
+//   idBagianFK bagian @relation(fields: [idBagian], references: [id])
+// }
+
+// model permintaanonmbr {
+//   id Int @id @default(autoincrement()) @db.UnsignedInt
+//   idPermintaan Int @db.UnsignedInt
+//   idProdukMbr Int @db.UnsignedInt
+//   minNumber Int
+//   maxNumber Int
+
+//   idDetailPermintaan detailpermintaanmbr[]
+
+//   idPermintaanFK permintaan @relation(fields: [idPermintaan], references: [id])
+//   idProdukMbrFK kategorionprodukonmbr @relation(fields: [idProdukMbr], references: [id])
+// }
+
+// model mbr {
+//   id Int @unique @default(autoincrement()) @db.UnsignedInt
+//   noMbr String @unique @db.VarChar(255)
+//   tanggalTerbit DateTime @db.Date
+//   expiredDate DateTime @db.Date
+//   directory String @db.VarChar(255)
+//   replacedBy Int? @db.UnsignedInt
+//   isActive Boolean
+
+//   idReplaced mbr[] @relation("replacedMBR")
+//   kategoriProdukMbr kategorionprodukonmbr[]
+
+//   idReplacedFK mbr? @relation("replacedMBR", fields: [replacedBy], references: [id])
+
+//   @@id([id, noMbr])
+// }
