@@ -18,7 +18,7 @@ app.use(cookieParser())
 app.use(cors(corsOpttion))
 
 app.get("/", (req: Request, res: Response) => {
-    res.send("")
+    res.send("It Works!")
 })
 
 app.get("/time", (req: Request, res: Response) => {
