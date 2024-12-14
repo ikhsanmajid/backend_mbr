@@ -22,17 +22,35 @@ interface produk {
 }
 
 //ANCHOR - Get Kategori
-export async function get_kategori(): Promise<ResultModel<kategori[] | null> | { data: string }> {
+export async function get_kategori(data: { limit: number | null, offset: number | null, search_kategori: string | null }): Promise<ResultModel<kategori[] | null> | { data: string }> {
     try {
         const getKategori = await prisma.kategori.findMany({
             select: {
                 id: true,
                 namaKategori: true,
                 startingNumber: true
+            },
+            where: {
+                namaKategori: {
+                    contains: data.search_kategori ?? undefined
+                }
+            },
+            orderBy: {
+                id: "asc"
+            },
+            skip: data.offset ?? undefined,
+            take: data.limit ?? undefined
+        })
+
+        const count = await prisma.kategori.count({
+            where: {
+                namaKategori: {
+                    contains: data.search_kategori ?? undefined
+                }
             }
         })
 
-        return { data: getKategori }
+        return { data: getKategori, count: count }
     } catch (error) {
         throw error
     }

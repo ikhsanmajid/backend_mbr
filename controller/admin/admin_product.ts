@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import * as adminProduct from "../../services/admin/admin_product_service";
+import * as adminProductRB from "../../services/admin/admin_product_rb_service";
 
 interface kategori {
     id?: string | number;
@@ -17,12 +18,18 @@ interface produk {
 //ANCHOR - Get Kategori
 export async function get_kategori(req: Request, res: Response, next: NextFunction) {
     try {
-        const kategori = await adminProduct.get_kategori()
+        const data = {
+            limit: req.query.limit == undefined ? null : Number(req.query.limit),
+            offset: req.query.offset == undefined ? null : Number(req.query.offset),
+            search_kategori: req.query.search_kategori == undefined ? null : String(req.query.search_kategori)
+        }
+        const kategori = await adminProduct.get_kategori(data)
 
-        if ('data' in kategori!) {
+        if ('data' in kategori! && 'count' in kategori!) {
             res.status(200).json({
                 data: kategori.data,
                 message: "Data Kategori",
+                count: kategori.count,
                 status: "success"
             });
         } else {
@@ -31,6 +38,133 @@ export async function get_kategori(req: Request, res: Response, next: NextFuncti
     } catch (error) {
         return next(error)
     }
+}
+
+//ANCHOR - Check Kategori
+export async function check_kategori(req: Request, res: Response, next: NextFunction) {
+    try {
+        const {nama_kategori} = req.query
+
+        const decodedNamaKategori = decodeURIComponent(nama_kategori as string)
+
+        const kategori = await adminProductRB.check_category({namaKategori: decodedNamaKategori as string})
+
+        if ('data' in kategori!) {
+            if (kategori.data! > 0) {
+                return res.status(200).json({
+                    message: "exist",
+                    status: "success"
+                });
+            }else{
+                return res.status(200).json({
+                    message: "not exist",
+                    status: "success"
+                });
+            }
+        } else {
+            throw kategori
+        }
+
+    } catch (error) {
+        return next(error)
+    }
+    
+}
+
+//ANCHOR - Tambah Kategori
+export async function add_category(req: Request, res: Response, next: NextFunction) {
+    try {
+        let postData: kategori = {
+            namaKategori: String(req.body.nama_kategori),
+            startingNumber: String(req.body.starting_number)
+        }
+
+        if (postData.startingNumber?.match(/\d{6}/) == null) {
+            throw new Error("Starting Number Harus 6 digit")
+        }
+
+        const category = await adminProductRB.add_category(postData)
+
+        if ('data' in category!) {
+            res.status(200).json({
+                data: category.data,
+                message: "Tambah Kategori Berhasil",
+                status: "success"
+            });
+        } else {
+            throw category
+        }
+    } catch (error) {
+        return next(error)
+    }
+}
+
+//ANCHOR - Update Kategori
+export async function update_kategori(req: Request, res: Response, next: NextFunction) {
+    try {
+        const {id} = req.params
+        const {nama_kategori, starting_number} = req.body
+
+        const decodedNamaKategori = decodeURIComponent(nama_kategori as string)
+
+        const putData: {namaKategori: string, startingNumber: string} = {
+            namaKategori: decodedNamaKategori,
+            startingNumber: starting_number
+        }
+
+        if (nama_kategori == "") {
+            return res.status(400).json({
+                message: "Data Tidak Boleh Kosong",
+                status: "error",
+                type: "error"
+            });
+        }
+
+        if (starting_number == "") {
+            return res.status(400).json({
+                message: "Data Tidak Boleh Kosong",
+                status: "error",
+                type: "error"
+            });
+        }
+
+        const kategori = await adminProductRB.update_kategori(Number(id), putData)
+
+        if ('data' in kategori!) {
+            return res.status(200).json({
+                message: "Update Berhasil",
+                status: "success"
+            });
+        } else {
+            throw kategori
+        }
+
+    } catch (error) {
+        return next(error)
+    }
+    
+}
+
+//ANCHOR - Delete Kategori
+export async function delete_category(req: Request, res: Response, next: NextFunction) {
+    try {
+        const {id} = req.params
+
+        const kategori = await adminProductRB.delete_kategori(Number(id))
+
+        if ('data' in kategori!) {
+            return res.status(200).json({
+                message: "Delete Berhasil",
+                status: "success"
+            });
+        } else {
+            throw kategori
+        }
+
+    } catch (error) {
+        return next(error)
+    }
+    
 }
 
 

@@ -5,7 +5,8 @@ export async function add_department(req: Request, res: Response, next: NextFunc
     try {
         let postData = {
             namaBagian: req.body.nama_bagian,
-            isActive: req.body.is_active == undefined ? true : req.body.is_active === "true" ? true : false
+            isActive: req.body.is_active == undefined ? true : req.body.is_active === "true" ? true : false,
+            kategori: req.body.kategori == undefined ? undefined : Number(req.body.kategori),
         }
 
         const department = await adminDepartment.add_department_model(postData);
@@ -29,6 +30,7 @@ export async function find_all(req: Request, res: Response, next: NextFunction) 
     try {
         let getData = {
             isActive: req.query.is_active == undefined ? undefined : req.query.is_active === "true" ? true : false,
+            manufaktur: req.query.manufaktur == undefined ? undefined : req.query.manufaktur === "yes" ? true : false,
             limit: req.query.limit == undefined ? undefined : req.query.limit,
             offset: req.query.offset == undefined ? undefined : req.query.offset,
             search: (req.query.search == undefined || req.query.search.length == 0) ? undefined : req.query.search
@@ -132,7 +134,8 @@ export async function update_department(req: Request, res: Response, next: NextF
         const postData = {
             id: req.params.id,
             namaBagian: req.body?.nama_bagian == undefined ? undefined : req.body?.nama_bagian,
-            isActive: req.body?.is_active == undefined ? undefined : req.body?.is_active === "true" ? true : false
+            isActive: req.body?.is_active == undefined ? undefined : req.body?.is_active === "true" ? true : false,
+            kategori: req.body?.kategori == undefined ? undefined : Number(req.body?.kategori)
 
         }
 

@@ -26,7 +26,8 @@ function add_department_model(data) {
             const department = yield prisma.bagian.create({
                 data: {
                     namaBagian: data.namaBagian,
-                    isActive: data.isActive
+                    isActive: data.isActive,
+                    idJenisBagian: data.kategori
                 },
                 select: {
                     id: true,
@@ -50,18 +51,35 @@ function find_all_department_model(data) {
                     id: true,
                     namaBagian: true,
                     isActive: true,
-                },
-                where: {
-                    isActive: data.isActive,
-                    namaBagian: {
-                        contains: data.search
+                    idJenisBagianFK: {
+                        select: {
+                            id: true,
+                            namaJenisBagian: true
+                        }
                     }
                 },
+                where: Object.assign({ isActive: data.isActive, namaBagian: {
+                        contains: data.search
+                    } }, (data.manufaktur && {
+                    idJenisBagian: {
+                        in: [1, 2],
+                    }
+                })),
                 orderBy: {
                     namaBagian: "asc"
                 },
                 skip: (data.offset ? parseInt(data.offset) : undefined),
                 take: (data.limit ? parseInt(data.limit) : undefined)
+            });
+            const result = new Array();
+            department.forEach((element) => {
+                result.push({
+                    id: element.id,
+                    namaBagian: element.namaBagian,
+                    isActive: element.isActive,
+                    idJenisBagian: element.idJenisBagianFK.id,
+                    namaJenisBagian: element.idJenisBagianFK.namaJenisBagian
+                });
             });
             const count = yield prisma.bagian.count({
                 where: {
@@ -71,7 +89,7 @@ function find_all_department_model(data) {
                     }
                 }
             });
-            return { data: department, count: count };
+            return { data: result, count: count };
         }
         catch (error) {
             throw error;
@@ -160,6 +178,7 @@ function update_department_model(data) {
                 data: {
                     namaBagian: data.namaBagian,
                     isActive: data.isActive,
+                    idJenisBagian: data.kategori
                 },
                 select: {
                     id: true,

@@ -227,8 +227,10 @@ export async function set_request_used(id: number): Promise<ResultModel<boolean>
 }
 
 //ANCHOR - Get Permintaan RB berdasarkan bagian
-export async function get_request_by_bagian(data: { idBagian: number | null, keyword: string | null, status: Konfirmasi | null, idProduk: number | null, used: boolean | null, limit: number | null, offset: number | null }): Promise<ResultModel<RequestRB[] | null> | { data: string }> {
+export async function get_request_by_bagian(data: { idBagian: number | null, year: number | null, keyword: string | null, status: Konfirmasi | null, idProduk: number | null, used: boolean | null, limit: number | null, offset: number | null }): Promise<ResultModel<RequestRB[] | null> | { data: string }> {
     try {
+        const year = new Date().getFullYear()
+
         const query = `SELECT 
             r.id,
             r.idCreated,
@@ -260,6 +262,7 @@ export async function get_request_by_bagian(data: { idBagian: number | null, key
             ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
             ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
             ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+            AND YEAR(r.timeCreated) = ${data.year ?? year}
         GROUP BY 
             r.id, r.idCreated, r.timeCreated, r.idBagianCreated, b.namaBagian, 
             r.idConfirmed, r.timeConfirmed, r.STATUS, r.reason, r.used
@@ -376,6 +379,7 @@ export async function get_request_by_bagian(data: { idBagian: number | null, key
                     ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
                     ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
                     ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+                    AND YEAR(r.timeCreated) = ${data.year ?? year}
                 GROUP BY
                     r.id
             ) as subquery;`
@@ -482,8 +486,8 @@ export async function get_rb_return_by_product(id: number, status: string | null
         WHERE
             d.idProduk = ${id}
             ${(startDate !== null && endDate !== null) ? `AND (
-		    ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		    AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+		    ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		    AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
 	        )` : ""}
         GROUP BY
             p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr 
@@ -507,8 +511,8 @@ export async function get_rb_return_by_product(id: number, status: string | null
             WHERE
                 d.idProduk = ${id}
                 ${(startDate !== null && endDate !== null) ? `AND (
-		        ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		        AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+		        ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		        AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
 	            )` : ""}
             GROUP BY
                 d.idPermintaanMbr

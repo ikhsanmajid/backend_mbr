@@ -45,6 +45,10 @@ const router = express_1.default.Router();
 router.use(authentication_middleware);
 //Kategori
 router.get("/getKategori", admin_product.get_kategori);
+router.get("/checkKategori", admin_product.check_kategori);
+router.patch("/updateCategory/:id", [authorization_1.check_is_authorized_admin], admin_product.update_kategori);
+router.post("/addCategory", [authorization_1.check_is_authorized_admin], admin_product.add_category);
+router.delete("/deleteCategory/:id", [authorization_1.check_is_authorized_admin], admin_product.delete_category);
 // Produk
 router.post("/addProduct", [authorization_1.check_is_authorized_admin], admin_product.add_product);
 router.get("/getProduct", [authorization_1.check_user_has_department, authorization_1.get_user_department], admin_product.get_product);

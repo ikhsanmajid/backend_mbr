@@ -43,21 +43,153 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get_kategori = get_kategori;
+exports.check_kategori = check_kategori;
+exports.add_category = add_category;
+exports.update_kategori = update_kategori;
+exports.delete_category = delete_category;
 exports.add_product = add_product;
 exports.get_product = get_product;
 exports.check_product = check_product;
 exports.delete_product = delete_product;
 exports.edit_product = edit_product;
 const adminProduct = __importStar(require("../../services/admin/admin_product_service"));
+const adminProductRB = __importStar(require("../../services/admin/admin_product_rb_service"));
 //ANCHOR - Get Kategori
 function get_kategori(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const kategori = yield adminProduct.get_kategori();
-            if ('data' in kategori) {
+            const data = {
+                limit: req.query.limit == undefined ? null : Number(req.query.limit),
+                offset: req.query.offset == undefined ? null : Number(req.query.offset),
+                search_kategori: req.query.search_kategori == undefined ? null : String(req.query.search_kategori)
+            };
+            const kategori = yield adminProduct.get_kategori(data);
+            if ('data' in kategori && 'count' in kategori) {
                 res.status(200).json({
                     data: kategori.data,
                     message: "Data Kategori",
+                    count: kategori.count,
+                    status: "success"
+                });
+            }
+            else {
+                throw kategori;
+            }
+        }
+        catch (error) {
+            return next(error);
+        }
+    });
+}
+//ANCHOR - Check Kategori
+function check_kategori(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { nama_kategori } = req.query;
+            const decodedNamaKategori = decodeURIComponent(nama_kategori);
+            const kategori = yield adminProductRB.check_category({ namaKategori: decodedNamaKategori });
+            if ('data' in kategori) {
+                if (kategori.data > 0) {
+                    return res.status(200).json({
+                        message: "exist",
+                        status: "success"
+                    });
+                }
+                else {
+                    return res.status(200).json({
+                        message: "not exist",
+                        status: "success"
+                    });
+                }
+            }
+            else {
+                throw kategori;
+            }
+        }
+        catch (error) {
+            return next(error);
+        }
+    });
+}
+//ANCHOR - Tambah Kategori
+function add_category(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            let postData = {
+                namaKategori: String(req.body.nama_kategori),
+                startingNumber: String(req.body.starting_number)
+            };
+            if (((_a = postData.startingNumber) === null || _a === void 0 ? void 0 : _a.match(/\d{6}/)) == null) {
+                throw new Error("Starting Number Harus 6 digit");
+            }
+            const category = yield adminProductRB.add_category(postData);
+            if ('data' in category) {
+                res.status(200).json({
+                    data: category.data,
+                    message: "Tambah Kategori Berhasil",
+                    status: "success"
+                });
+            }
+            else {
+                throw category;
+            }
+        }
+        catch (error) {
+            return next(error);
+        }
+    });
+}
+//ANCHOR - Update Kategori
+function update_kategori(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { id } = req.params;
+            const { nama_kategori, starting_number } = req.body;
+            const decodedNamaKategori = decodeURIComponent(nama_kategori);
+            const putData = {
+                namaKategori: decodedNamaKategori,
+                startingNumber: starting_number
+            };
+            if (nama_kategori == "") {
+                return res.status(400).json({
+                    message: "Data Tidak Boleh Kosong",
+                    status: "error",
+                    type: "error"
+                });
+            }
+            if (starting_number == "") {
+                return res.status(400).json({
+                    message: "Data Tidak Boleh Kosong",
+                    status: "error",
+                    type: "error"
+                });
+            }
+            const kategori = yield adminProductRB.update_kategori(Number(id), putData);
+            if ('data' in kategori) {
+                return res.status(200).json({
+                    message: "Update Berhasil",
+                    status: "success"
+                });
+            }
+            else {
+                throw kategori;
+            }
+        }
+        catch (error) {
+            return next(error);
+        }
+    });
+}
+//ANCHOR - Delete Kategori
+function delete_category(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { id } = req.params;
+            const kategori = yield adminProductRB.delete_kategori(Number(id));
+            if ('data' in kategori) {
+                return res.status(200).json({
+                    message: "Delete Berhasil",
                     status: "success"
                 });
             }

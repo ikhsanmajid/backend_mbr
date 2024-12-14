@@ -19,17 +19,35 @@ const client_1 = require("@prisma/client");
 //SECTION - Product Model Admin
 const prisma = new client_1.PrismaClient();
 //ANCHOR - Get Kategori
-function get_kategori() {
+function get_kategori(data) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c, _d;
         try {
             const getKategori = yield prisma.kategori.findMany({
                 select: {
                     id: true,
                     namaKategori: true,
                     startingNumber: true
+                },
+                where: {
+                    namaKategori: {
+                        contains: (_a = data.search_kategori) !== null && _a !== void 0 ? _a : undefined
+                    }
+                },
+                orderBy: {
+                    id: "asc"
+                },
+                skip: (_b = data.offset) !== null && _b !== void 0 ? _b : undefined,
+                take: (_c = data.limit) !== null && _c !== void 0 ? _c : undefined
+            });
+            const count = yield prisma.kategori.count({
+                where: {
+                    namaKategori: {
+                        contains: (_d = data.search_kategori) !== null && _d !== void 0 ? _d : undefined
+                    }
                 }
             });
-            return { data: getKategori };
+            return { data: getKategori, count: count };
         }
         catch (error) {
             throw error;

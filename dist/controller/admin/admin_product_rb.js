@@ -42,7 +42,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.add_category = add_category;
 exports.confirm_request = confirm_request;
 exports.get_recap_request = get_recap_request;
 exports.get_request_lists = get_request_lists;
@@ -57,38 +56,10 @@ exports.get_rb_return_by_id_permintaan = get_rb_return_by_id_permintaan;
 exports.set_nomor_rb_return = set_nomor_rb_return;
 exports.confirm_rb_return = confirm_rb_return;
 exports.generate_report_rb_belum_kembali_perbagian = generate_report_rb_belum_kembali_perbagian;
+exports.generate_report_dashboard_admin = generate_report_dashboard_admin;
 const adminProductRb = __importStar(require("../../services/admin/admin_product_rb_service"));
 const client_1 = require("@prisma/client");
 const exceljs = __importStar(require("exceljs"));
-//ANCHOR - Tambah Kategori
-function add_category(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c;
-        try {
-            let postData = {
-                namaKategori: (_a = req.body.nama_kategori) !== null && _a !== void 0 ? _a : "",
-                startingNumber: (_b = req.body.starting_number) !== null && _b !== void 0 ? _b : ""
-            };
-            if (((_c = postData.startingNumber) === null || _c === void 0 ? void 0 : _c.match(/\d{6}/)) == null) {
-                throw new Error("Starting Number Harus 6 digit");
-            }
-            const category = yield adminProductRb.add_category(postData);
-            if ('data' in category) {
-                res.status(200).json({
-                    data: category.data,
-                    message: "Tambah Kategori Berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw category;
-            }
-        }
-        catch (error) {
-            return next(error);
-        }
-    });
-}
 //ANCHOR - Konfirmasi RB
 function confirm_request(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -512,6 +483,14 @@ function generate_report_rb_belum_kembali_perbagian(req, res, next) {
             const startDate = req.query.startDate == undefined ? null : String(req.query.startDate);
             const endDate = req.query.endDate == undefined ? null : String(req.query.endDate);
             const statusReq = req.query.statusKembali == undefined ? null : String(req.query.statusKembali);
+            const date1input = startDate !== null && startDate !== void 0 ? startDate : "01-2024";
+            const [month1, year1] = date1input.split("-");
+            const date1 = new Date(`${year1}-${month1}-01`);
+            const formattedStartDate = new Intl.DateTimeFormat("id-ID", { year: "numeric", month: "long" }).format(date1);
+            const date2input = endDate !== null && endDate !== void 0 ? endDate : "12-2024"; // Format MM-YY
+            const [month2, year2] = date2input.split("-");
+            const date2 = new Date(`${year2}-${month2}-01`); // Mengonversi ke Date
+            const formattedEndDate = new Intl.DateTimeFormat("id-ID", { year: "numeric", month: "long" }).format(date2);
             let status = null;
             if (statusReq !== null && statusReq == "belum") {
                 status = client_1.Status.ACTIVE;
@@ -532,34 +511,35 @@ function generate_report_rb_belum_kembali_perbagian(req, res, next) {
                 }
                 const fileName = `Laporan RB Belum Kembali ${request.data[0].namaBagian}-${new Date().toISOString().replace(/[:T-]/g, '').slice(0, 14)}.xlsx`;
                 const workbook = new exceljs.Workbook();
-                const sheet = workbook.addWorksheet("Laporan RB Belum Kembali Perbagian");
-                for (let row = 0; row < 4; row++) {
-                    if (row == 2) {
-                        sheet.addRow(["Laporan RB Belum Kembali Bagian " + request.data[0].namaBagian]);
-                        sheet.mergeCells("A3:J3");
-                        const titleRow = sheet.getRow(3);
-                        const firstCellTitleRow = titleRow.getCell(1);
-                        firstCellTitleRow.font = { bold: true, name: "Helvetica", size: 16 };
-                        firstCellTitleRow.alignment = { vertical: "middle", horizontal: "center" };
-                    }
-                    else {
-                        sheet.addRow([]);
-                    }
+                const sheet = workbook.addWorksheet("RB Belum Kembali");
+                // for (let row = 0; row < 4; row++) {
+                //     if (row == 2) {
+                //         sheet.addRow(["Data Rekaman Batch Yang Belum Kembali " + request.data[0].namaBagian])
+                //         sheet.mergeCells("A3:J3");
+                //         const titleRow = sheet.getRow(3);
+                //         const firstCellTitleRow = titleRow.getCell(1);
+                //         firstCellTitleRow.font = { bold: true, name: "Helvetica", size: 16 };
+                //         firstCellTitleRow.alignment = { vertical: "middle", horizontal: "center" };
+                //     } else {
+                //         sheet.addRow([]);
+                //     }
+                // }
+                for (let row = 0; row < 3; row++) {
+                    sheet.addRow([]);
                 }
                 sheet.addRow([
                     "No",
-                    "Tanggal Permintaan",
-                    "Bagian Produksi",
                     "Nama Produk",
-                    "Kategori",
-                    "No Dokumen MBR",
-                    "Tipe MBR",
-                    "No Urut",
-                    "Status",
-                    "No Batch"
+                    "Nomor Urut",
+                    "PO",
+                    "PS",
+                    "Tanggal Kirim",
+                    "Nomor Batch",
+                    "Tanggal Kembali",
+                    "Keterangan"
                 ]);
-                const headerRow = sheet.getRow(5);
-                headerRow.eachCell((cell) => {
+                const headerTableRow = sheet.getRow(4);
+                headerTableRow.eachCell((cell) => {
                     cell.alignment = { vertical: "middle", horizontal: "center" };
                     cell.font = { bold: true, name: "Helvetica", size: 11 };
                     cell.border = {
@@ -570,33 +550,49 @@ function generate_report_rb_belum_kembali_perbagian(req, res, next) {
                     };
                 });
                 sheet.columns = [
-                    { key: "id", width: 5 },
-                    { key: "timeCreated", width: 20 },
-                    { key: "namaBagian", width: 20 },
-                    { key: "namaProduk", width: 20 },
-                    { key: "namaKategori", width: 20 },
-                    { key: "nomormbr", width: 20 },
-                    { key: "tipeMBR", width: 20 },
-                    { key: "nomorUrut", width: 20 },
-                    { key: "status", width: 20 },
-                    { key: "nomorBatch", width: 20 },
+                    { key: "id", width: 7 },
+                    { key: "namaProduk", width: 32 },
+                    { key: "nomorUrut", width: 15 },
+                    { key: "PO", width: 6 },
+                    { key: "PS", width: 6 },
+                    { key: "timeConfirmed", width: 19 },
+                    { key: "nomorBatch", width: 21 },
+                    { key: "tanggalKembali", width: 19 },
+                    { key: "keterangan", width: 25 }
                 ];
                 sheet.getColumn("id").alignment = { vertical: "middle", horizontal: "center" };
+                sheet.getColumn("namaProduk").alignment = { vertical: "middle", horizontal: "center" };
+                sheet.getColumn("nomorUrut").alignment = { vertical: "middle", horizontal: "center" };
+                sheet.getColumn("PO").alignment = { vertical: "middle", horizontal: "center" };
+                sheet.getColumn("PS").alignment = { vertical: "middle", horizontal: "center" };
+                sheet.getColumn("timeConfirmed").alignment = { vertical: "middle", horizontal: "center" };
+                sheet.getColumn("nomorBatch").alignment = { vertical: "middle", horizontal: "center" };
+                sheet.getColumn("tanggalKembali").alignment = { vertical: "middle", horizontal: "center" };
+                sheet.getColumn("keterangan").alignment = { vertical: "middle", horizontal: "center" };
                 let i = 1;
-                request.data.forEach((item) => {
+                request.data.forEach((item, index) => {
                     var _a;
-                    const statusCapitalized = item.status.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+                    //const statusCapitalized = item.status.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
                     const row = sheet.addRow({
                         id: i,
-                        timeCreated: new Date(item.timeCreated).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }),
-                        namaBagian: item.namaBagian,
-                        namaProduk: item.namaProduk,
-                        namaKategori: item.namaKategori,
-                        nomormbr: item.nomormbr,
-                        tipeMBR: item.tipeMBR,
+                        timeConfirmed: new Date(item.timeConfirmed).toLocaleString("id-ID", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            timeZone: "Asia/Jakarta",
+                        }),
+                        namaProduk: (index == 0 ? item.namaProduk : item.namaProduk == request.data[index - 1].namaProduk ? "" : item.namaProduk),
+                        PO: item.tipeMBR == "PO" ? "V" : "",
+                        PS: item.tipeMBR == "PS" ? "V" : "",
                         nomorUrut: item.nomorUrut,
                         nomorBatch: (_a = item.nomorBatch) !== null && _a !== void 0 ? _a : "",
-                        status: item.status === "ACTIVE" ? "Belum Kembali" : statusCapitalized,
+                        tanggalKembali: item.tanggalKembali == null ? "" : new Date(item.tanggalKembali).toLocaleString("id-ID", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            timeZone: "Asia/Jakarta"
+                        }),
+                        keterangan: item.status == "BATAL" ? "Nomor Batal" : ""
                     });
                     row.eachCell((cell) => {
                         cell.font = { name: "Helvetica", size: 11 };
@@ -609,11 +605,60 @@ function generate_report_rb_belum_kembali_perbagian(req, res, next) {
                     });
                     i++;
                 });
+                sheet.getCell("A1").value = "PT KONIMEX";
+                sheet.getCell("A1").font = { bold: true, italic: true, name: "Helvetica", size: 12 };
+                sheet.getCell("A1").alignment = { vertical: "middle", horizontal: "left" };
+                sheet.getCell("A3").value = `BULAN: ${formattedStartDate} s.d ${formattedEndDate}`;
+                sheet.getCell("A3").font = { bold: true, name: "Helvetica", size: 11 };
+                sheet.getCell("A3").alignment = { vertical: "middle", horizontal: "left" };
+                sheet.getCell("G3").value = `PRODUKSI: ${request.data[0].namaBagian}`;
+                sheet.getCell("G3").font = { bold: true, name: "Helvetica", size: 11 };
+                sheet.getCell("G3").alignment = { vertical: "middle", horizontal: "left" };
+                sheet.mergeCells("A2:F2");
+                sheet.getCell("A2").value = `DATA REKAMAN BATCH YANG BELUM KEMBALI`;
+                sheet.getCell("A2").font = { bold: true, name: "Helvetica", size: 11 };
+                //sheet.getCell("C2").alignment = { vertical: "middle", horizontal: "left" };
+                for (let row = 1; row <= 3; row++) {
+                    for (let col = 1; col <= 9; col++) {
+                        const cell = sheet.getCell(row, col);
+                        if (row === 1)
+                            cell.border = Object.assign(Object.assign({}, cell.border), { top: { style: "thin" } });
+                        if (row === 3)
+                            cell.border = Object.assign(Object.assign({}, cell.border), { bottom: { style: "thin" }, top: { style: "thin" } });
+                        if (col === 1)
+                            cell.border = Object.assign(Object.assign({}, cell.border), { left: { style: "thin" } });
+                        if (col === 7)
+                            cell.border = Object.assign(Object.assign({}, cell.border), { left: { style: "thin" } });
+                        if (col === 9)
+                            cell.border = Object.assign(Object.assign({}, cell.border), { right: { style: "thin" } });
+                    }
+                }
                 res.header('Access-Control-Expose-Headers', 'Content-Disposition');
                 res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
                 res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
                 yield workbook.xlsx.write(res);
                 return res.end();
+            }
+            else {
+                throw request;
+            }
+        }
+        catch (error) {
+            return next(error);
+        }
+    });
+}
+//ANCHOR - Laporan Dashboard Admin
+function generate_report_dashboard_admin(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const request = yield adminProductRb.generate_report_dashboard_admin();
+            if ('data' in request) {
+                return res.status(200).json({
+                    data: request.data,
+                    message: "Konfirmasi RB Return Berhasil",
+                    status: "success"
+                });
             }
             else {
                 throw request;

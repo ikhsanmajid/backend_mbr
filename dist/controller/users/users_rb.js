@@ -142,6 +142,7 @@ function get_list_request(req, res, next) {
                 idProduk: req.query.idProduk == undefined ? null : Number(req.query.idProduk),
                 status: req.query.status == undefined ? null : checkStatus(String(req.query.status)),
                 used: req.query.used == undefined ? null : checkUsed(String(req.query.used)),
+                year: req.query.year == undefined ? null : Number(req.query.year),
                 limit: req.query.limit == undefined ? null : Number(req.query.limit),
                 offset: req.query.offset == undefined ? null : Number(req.query.offset),
             };

@@ -175,6 +175,7 @@ interface NomorPermintaanById {
     nomorAkhir: string;
     group_id: number;
 }
+
 //ANCHOR - Tambah Kategori
 export async function add_category(data: kategori): Promise<ResultModel<kategori | null> | { data: string }> {
     try {
@@ -191,6 +192,62 @@ export async function add_category(data: kategori): Promise<ResultModel<kategori
         })
 
         return { data: addCategory }
+    } catch (error) {
+        throw error
+    }
+}
+
+//ANCHOR - Check Kategori
+export async function check_category(data: { namaKategori: string }): Promise<ResultModel<number | null>> {
+    try {
+        const checkCategory = await prisma.kategori.count({
+            where: {
+                namaKategori: data.namaKategori
+            }
+        })
+
+        return { data: checkCategory }
+    } catch (error) {
+        throw error
+    }
+}
+
+//ANCHOR - Update Kategori
+export async function update_kategori(id: number, putData: { namaKategori: string, startingNumber: string }): Promise<ResultModel<kategori | null> | { data: string }> {
+    try {
+        const updateCategory = await prisma.kategori.update({
+            where: {
+                id: Number(id)
+            },
+            data: {
+                namaKategori: putData.namaKategori,
+                startingNumber: putData.startingNumber
+            },
+            select: {
+                id: true,
+                namaKategori: true,
+                startingNumber: true
+            }
+        })
+
+        return { data: updateCategory }
+
+    } catch (error) {
+        throw error
+    }
+}
+
+//ANCHOR - Delete Kategori
+export async function delete_kategori(id: number): Promise<ResultModel<kategori | null> | { data: string }> {
+    try {
+        const deleteCategory = await prisma.kategori.delete({
+            where: {
+                id: id
+            }
+        })
+
+        return { data: deleteCategory }
+
     } catch (error) {
         throw error
     }
@@ -247,6 +304,10 @@ export async function accept_permintaan(data: { id: string, action: string, time
                                 select: {
                                     startingNumber: true
                                 }
+                            }, idBagianFK: {
+                                select: {
+                                    idJenisBagian: true
+                                }
                             }
                         }
                     },
@@ -286,6 +347,14 @@ export async function accept_permintaan(data: { id: string, action: string, time
                             }
                         }, {
                             tahun: year
+                        }, {
+                            idDetailPermintaanFk: {
+                                idProdukFK: {
+                                    idBagianFK: {
+                                        idJenisBagian: detail.idProdukFK?.idBagianFK?.idJenisBagian
+                                    }
+                                }
+                            }
                         }]
                     },
                     _max: {
@@ -386,7 +455,7 @@ export async function reject_permintaan(data: { id: string, action: string, time
 // offset: req.query.offset == undefined ? null : Number(req.query.offset),
 
 //ANCHOR - Mengambil semua permintaan sesuai status
-export async function get_permintaan(data: {keyword: null | string, idBagian: number | null, idProduk: number | null, status: Konfirmasi | null, used: boolean | null, year: number | null, limit: number | null, offset: number | null}): Promise<ResultModel<ModifiedPermintaan[] | null> | { data: string }> {
+export async function get_permintaan(data: { keyword: null | string, idBagian: number | null, idProduk: number | null, status: Konfirmasi | null, used: boolean | null, year: number | null, limit: number | null, offset: number | null }): Promise<ResultModel<ModifiedPermintaan[] | null> | { data: string }> {
     try {
 
         const year = new Date().getFullYear()
@@ -877,8 +946,8 @@ export async function get_rb_return_by_product(id: number, status: string | null
         WHERE
             d.idProduk = ${id}
             ${(startDate !== null && endDate !== null) ? `AND (
-		    ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		    AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+		    ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		    AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
 	        ) ` : ""}
         GROUP BY
             p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr          
@@ -902,10 +971,10 @@ export async function get_rb_return_by_product(id: number, status: string | null
                 permintaan r ON r.id = d.idPermintaanMbr
             WHERE
                 d.idProduk = ${id}
-                ${(startDate !== null && endDate !== null) ? ` AND (
-		        ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		        AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
-	            )` : ""}
+                ${(startDate !== null && endDate !== null) ? `AND (
+		        ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		        AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+	            ) ` : ""}
             GROUP BY
                 d.idPermintaanMbr
             HAVING 
@@ -1122,16 +1191,15 @@ export async function confirm_rb_return(id: number, idAdmin: number): Promise<Re
     }
 }
 
-interface ILaporanRB {
+export interface ILaporanRB {
     nomorUrut: string;
     namaProduk: string;
-    timeCreated: string;
-    nomormbr: string;
+    timeConfirmed: string;
     tipeMBR: string;
-    namaKategori: string;
     namaBagian: string;
     status: Status;
     nomorBatch: string | null;
+    tanggalKembali: string | null;
 }
 
 // ANCHOR - Laporan RB Belum Kembali perbagian
@@ -1139,17 +1207,16 @@ export async function get_laporan_rb_belum_kembali_perbagian(idBagian: number | 
     try {
         const year = new Date().getFullYear()
         const query = `SELECT
-            n.nomorUrut,
-            p.namaProduk,
-            r.timeCreated,
-            d.nomormbr,
-            d.tipeMBR,
-            k.namaKategori,
-            b.namaBagian,
-            n.status,
-	        n.nomorBatch
-                    FROM
-            nomormbr n
+            	n.nomorUrut,
+                p.namaProduk,
+                r.timeConfirmed,
+                d.tipeMBR,
+                b.namaBagian,
+                n.status,
+                n.nomorBatch,
+                n.tanggalKembali
+            FROM
+                nomormbr n
             JOIN detailpermintaanmbr d ON d.id = n.idDetailPermintaan
             JOIN produk p ON d.idProduk = p.id
             JOIN permintaan r ON r.id = d.idPermintaanMbr
@@ -1159,20 +1226,102 @@ export async function get_laporan_rb_belum_kembali_perbagian(idBagian: number | 
             r.idBagianCreated = ${idBagian} 
             ${(status !== null) ? `AND n.status = '${status}' AND n.tanggalKembali IS NULL ` : ""}
             ${(startDate !== null && endDate !== null) ? ` AND (
-		        ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		        AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+		        ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		        AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
 	            )` : `AND YEAR(r.timeCreated) = ${year}`}
-            ORDER BY b.namaBagian, k.namaKategori, p.namaProduk, r.timeCreated, n.nomorUrut, d.tipeMBR ASC`
+            ORDER BY b.namaBagian, k.namaKategori, p.namaProduk, n.nomorUrut, r.timeCreated ASC`
 
         const getRequest = await prisma.$queryRaw<ILaporanRB[]>(Prisma.sql([query]))
-
-        console.log(getRequest)
 
         if (getRequest.length == 0) {
             return { data: null }
         }
 
         return { data: getRequest }
+    } catch (error) {
+        throw error
+    }
+}
+
+//ANCHOR - Generate Report Dashboard Admin
+export async function generate_report_dashboard_admin(): Promise<ResultModel<{ RBBelumKembali: { count: number | string, namaBagian: string }[], RBDibuat: { count: number | string, namaJenisBagian: string }[] } | null | { data: string }>> {
+    try {
+        const twoMonthsAgo = new Date();
+        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
+        const formattedDate = twoMonthsAgo.toLocaleDateString("id-ID", {
+            month: '2-digit',  // mm
+            year: 'numeric'   // yyyy
+        });
+
+        const bulanTahun = formattedDate.split("/")
+
+        const dateNow = new Date();
+        const yearNow = dateNow.getFullYear()
+
+        //console.log(bulanTahun)
+
+        const query = `SELECT
+                COUNT(CASE 
+                        WHEN n.status = "ACTIVE" 
+                        AND ((MONTH(r.timeCreated) <= ${bulanTahun[0]} AND YEAR(r.timeCreated) <= ${bulanTahun[1]}) OR r.timeCreated IS NULL)
+                        THEN 1 
+                        ELSE NULL 
+                    END) AS count,
+                    b.namaBagian
+                FROM
+                    bagian b
+                    LEFT JOIN permintaan r ON b.id = r.idBagianCreated
+                    LEFT JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                    LEFT JOIN nomormbr n ON d.id = n.idDetailPermintaan
+                WHERE
+                    b.idJenisBagian IN (1, 2)
+                GROUP BY
+                b.namaBagian;`
+
+        const getRequest = await prisma.$queryRaw<{ count: number, namaBagian: string }[]>(Prisma.sql([query]))
+
+        const result = getRequest.map(item => ({
+            count: String(item.count),
+            namaBagian: item.namaBagian
+        }))
+
+        const queryRBDibuat = `SELECT
+                    COUNT(
+                    CASE
+                            WHEN n.id IS NOT NULL 
+                            AND ( YEAR ( r.timeCreated ) = ${yearNow} OR r.timeCreated IS NULL ) THEN
+                                1 ELSE NULL 
+                            END 
+                            ) AS count,
+                            j.namaJenisBagian 
+                        FROM
+                            permintaan r
+                            LEFT JOIN bagian b ON r.idBagianCreated = b.id
+                            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                            JOIN nomormbr n ON d.id = n.idDetailPermintaan
+                            RIGHT JOIN jenis_bagian j ON b.idJenisBagian = j.id 
+                        WHERE
+                            j.id IN ( 1, 2 )
+                    GROUP BY
+                    j.namaJenisBagian`
+
+        const getRequestRBDibuat = await prisma.$queryRaw<{ count: number, namaJenisBagian: string }[]>(Prisma.sql([queryRBDibuat]))
+        const resultRBDibuat = new Array()
+
+        getRequestRBDibuat.map(item => {
+            resultRBDibuat.push({
+                count: String(item.count),
+                namaJenisBagian: item.namaJenisBagian
+            })
+        })
+
+        return {
+            data: {
+                RBBelumKembali: result,
+                RBDibuat: resultRBDibuat
+            }
+        }
     } catch (error) {
         throw error
     }

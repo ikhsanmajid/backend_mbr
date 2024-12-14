@@ -10,6 +10,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.add_category = add_category;
+exports.check_category = check_category;
+exports.update_kategori = update_kategori;
+exports.delete_kategori = delete_kategori;
 exports.accept_permintaan = accept_permintaan;
 exports.reject_permintaan = reject_permintaan;
 exports.get_permintaan = get_permintaan;
@@ -25,6 +28,7 @@ exports.get_rb_return_by_id_permintaan = get_rb_return_by_id_permintaan;
 exports.set_nomor_rb_return = set_nomor_rb_return;
 exports.confirm_rb_return = confirm_rb_return;
 exports.get_laporan_rb_belum_kembali_perbagian = get_laporan_rb_belum_kembali_perbagian;
+exports.generate_report_dashboard_admin = generate_report_dashboard_admin;
 const client_1 = require("@prisma/client");
 //SECTION - Product Model Admin
 const prisma = new client_1.PrismaClient();
@@ -51,12 +55,69 @@ function add_category(data) {
         }
     });
 }
+//ANCHOR - Check Kategori
+function check_category(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const checkCategory = yield prisma.kategori.count({
+                where: {
+                    namaKategori: data.namaKategori
+                }
+            });
+            return { data: checkCategory };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+//ANCHOR - Update Kategori
+function update_kategori(id, putData) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const updateCategory = yield prisma.kategori.update({
+                where: {
+                    id: Number(id)
+                },
+                data: {
+                    namaKategori: putData.namaKategori,
+                    startingNumber: putData.startingNumber
+                },
+                select: {
+                    id: true,
+                    namaKategori: true,
+                    startingNumber: true
+                }
+            });
+            return { data: updateCategory };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+//ANCHOR - Delete Kategori
+function delete_kategori(id) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const deleteCategory = yield prisma.kategori.delete({
+                where: {
+                    id: id
+                }
+            });
+            return { data: deleteCategory };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
 //ANCHOR - Update Permintaan RB
 function accept_permintaan(data) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const resultAcceptPermintaan = yield prisma.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                var _a, _b, _c;
+                var _a, _b, _c, _d, _e;
                 const checkPermintaan = yield tx.permintaan.findFirst({
                     where: {
                         id: parseInt(data.id)
@@ -100,6 +161,10 @@ function accept_permintaan(data) {
                                     select: {
                                         startingNumber: true
                                     }
+                                }, idBagianFK: {
+                                    select: {
+                                        idJenisBagian: true
+                                    }
                                 }
                             }
                         },
@@ -133,6 +198,14 @@ function accept_permintaan(data) {
                                     }
                                 }, {
                                     tahun: year
+                                }, {
+                                    idDetailPermintaanFk: {
+                                        idProdukFK: {
+                                            idBagianFK: {
+                                                idJenisBagian: (_d = (_c = detail.idProdukFK) === null || _c === void 0 ? void 0 : _c.idBagianFK) === null || _d === void 0 ? void 0 : _d.idJenisBagian
+                                            }
+                                        }
+                                    }
                                 }]
                         },
                         _max: {
@@ -153,7 +226,7 @@ function accept_permintaan(data) {
                         for (let i = 0; i < detail.jumlah; i++) {
                             data.push({
                                 idDetailPermintaan: detail.id,
-                                nomorUrut: (parseInt((_c = detail.idProdukFK) === null || _c === void 0 ? void 0 : _c.idKategoriFK.startingNumber) + (i + 1)).toString().padStart(6, "0"),
+                                nomorUrut: (parseInt((_e = detail.idProdukFK) === null || _e === void 0 ? void 0 : _e.idKategoriFK.startingNumber) + (i + 1)).toString().padStart(6, "0"),
                                 status: client_1.Status["ACTIVE"],
                                 tahun: year,
                             });
@@ -690,8 +763,8 @@ function get_rb_return_by_product(id, status, numberFind, limit, offset, startDa
         WHERE
             d.idProduk = ${id}
             ${(startDate !== null && endDate !== null) ? `AND (
-		    ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		    AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+		    ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		    AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
 	        ) ` : ""}
         GROUP BY
             p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr          
@@ -713,10 +786,10 @@ function get_rb_return_by_product(id, status, numberFind, limit, offset, startDa
                 permintaan r ON r.id = d.idPermintaanMbr
             WHERE
                 d.idProduk = ${id}
-                ${(startDate !== null && endDate !== null) ? ` AND (
-		        ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		        AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
-	            )` : ""}
+                ${(startDate !== null && endDate !== null) ? `AND (
+		        ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		        AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+	            ) ` : ""}
             GROUP BY
                 d.idPermintaanMbr
             HAVING 
@@ -917,17 +990,16 @@ function get_laporan_rb_belum_kembali_perbagian(idBagian, status, startDate, end
         try {
             const year = new Date().getFullYear();
             const query = `SELECT
-            n.nomorUrut,
-            p.namaProduk,
-            r.timeCreated,
-            d.nomormbr,
-            d.tipeMBR,
-            k.namaKategori,
-            b.namaBagian,
-            n.status,
-	        n.nomorBatch
-                    FROM
-            nomormbr n
+            	n.nomorUrut,
+                p.namaProduk,
+                r.timeConfirmed,
+                d.tipeMBR,
+                b.namaBagian,
+                n.status,
+                n.nomorBatch,
+                n.tanggalKembali
+            FROM
+                nomormbr n
             JOIN detailpermintaanmbr d ON d.id = n.idDetailPermintaan
             JOIN produk p ON d.idProduk = p.id
             JOIN permintaan r ON r.id = d.idPermintaanMbr
@@ -937,16 +1009,90 @@ function get_laporan_rb_belum_kembali_perbagian(idBagian, status, startDate, end
             r.idBagianCreated = ${idBagian} 
             ${(status !== null) ? `AND n.status = '${status}' AND n.tanggalKembali IS NULL ` : ""}
             ${(startDate !== null && endDate !== null) ? ` AND (
-		        ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		        AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+		        ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		        AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
 	            )` : `AND YEAR(r.timeCreated) = ${year}`}
-            ORDER BY b.namaBagian, k.namaKategori, p.namaProduk, r.timeCreated, n.nomorUrut, d.tipeMBR ASC`;
+            ORDER BY b.namaBagian, k.namaKategori, p.namaProduk, n.nomorUrut, r.timeCreated ASC`;
             const getRequest = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
-            console.log(getRequest);
             if (getRequest.length == 0) {
                 return { data: null };
             }
             return { data: getRequest };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+//ANCHOR - Generate Report Dashboard Admin
+function generate_report_dashboard_admin() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const twoMonthsAgo = new Date();
+            twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+            const formattedDate = twoMonthsAgo.toLocaleDateString("id-ID", {
+                month: '2-digit', // mm
+                year: 'numeric' // yyyy
+            });
+            const bulanTahun = formattedDate.split("/");
+            const dateNow = new Date();
+            const yearNow = dateNow.getFullYear();
+            //console.log(bulanTahun)
+            const query = `SELECT
+                COUNT(CASE 
+                        WHEN n.status = "ACTIVE" 
+                        AND ((MONTH(r.timeCreated) <= ${bulanTahun[0]} AND YEAR(r.timeCreated) <= ${bulanTahun[1]}) OR r.timeCreated IS NULL)
+                        THEN 1 
+                        ELSE NULL 
+                    END) AS count,
+                    b.namaBagian
+                FROM
+                    bagian b
+                    LEFT JOIN permintaan r ON b.id = r.idBagianCreated
+                    LEFT JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                    LEFT JOIN nomormbr n ON d.id = n.idDetailPermintaan
+                WHERE
+                    b.idJenisBagian IN (1, 2)
+                GROUP BY
+                b.namaBagian;`;
+            const getRequest = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
+            const result = getRequest.map(item => ({
+                count: String(item.count),
+                namaBagian: item.namaBagian
+            }));
+            const queryRBDibuat = `SELECT
+                    COUNT(
+                    CASE
+                            WHEN n.id IS NOT NULL 
+                            AND ( YEAR ( r.timeCreated ) = ${yearNow} OR r.timeCreated IS NULL ) THEN
+                                1 ELSE NULL 
+                            END 
+                            ) AS count,
+                            j.namaJenisBagian 
+                        FROM
+                            permintaan r
+                            LEFT JOIN bagian b ON r.idBagianCreated = b.id
+                            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                            JOIN nomormbr n ON d.id = n.idDetailPermintaan
+                            RIGHT JOIN jenis_bagian j ON b.idJenisBagian = j.id 
+                        WHERE
+                            j.id IN ( 1, 2 )
+                    GROUP BY
+                    j.namaJenisBagian`;
+            const getRequestRBDibuat = yield prisma.$queryRaw(client_1.Prisma.sql([queryRBDibuat]));
+            const resultRBDibuat = new Array();
+            getRequestRBDibuat.map(item => {
+                resultRBDibuat.push({
+                    count: String(item.count),
+                    namaJenisBagian: item.namaJenisBagian
+                });
+            });
+            return {
+                data: {
+                    RBBelumKembali: result,
+                    RBDibuat: resultRBDibuat
+                }
+            };
         }
         catch (error) {
             throw error;

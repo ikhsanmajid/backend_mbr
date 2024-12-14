@@ -22,18 +22,8 @@ model users {
 
   jabatanBagian usersonbagianonjabatan[]
   idUserTerima nomormbr[]
-  idUser department_monitored[]
 
   @@id([id, email, nik])
-}
-
-model department_monitored {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
-  idBagian Int @db.UnsignedInt
-  idUser Int @db.UnsignedInt
-
-  idUserFK users @relation(fields: [idUser], references: [id])
-  idBagianFK bagian @relation(fields: [idBagian], references: [id])
 }
 
 
@@ -59,11 +49,19 @@ model bagian {
   id Int @id @default(autoincrement()) @db.UnsignedInt
   namaBagian String @unique @db.VarChar(255)
   isActive Boolean
+  idJenisBagian Int @db.UnsignedInt
 
+  idJenisBagianFK jenis_bagian @relation(fields: [idJenisBagian], references: [id])
   idBagianJabatan bagianonjabatan[]
   idBagianProduk produk[]
-  idDepartmentMonitored department_monitored[]
   permintaan permintaan[]
+}
+
+model jenis_bagian {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+  namaJenisBagian String @unique @db.VarChar(255)
+
+  idBagian bagian[]
 }
 
 model jabatan {
@@ -151,7 +149,7 @@ model nomormbr {
   idUserTerimaFK users? @relation(fields: [idUserTerima], references: [id])
   idDetailPermintaanFk detailpermintaanmbr? @relation(fields: [idDetailPermintaan], references: [id], onDelete: Cascade)
 
-  @@unique([nomorUrut, tahun])
+  @@unique([idDetailPermintaan, nomorUrut, tahun])
 }
 
 enum Status {
