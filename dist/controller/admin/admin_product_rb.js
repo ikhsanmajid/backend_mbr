@@ -172,13 +172,39 @@ function get_recap_request(req, res, next) {
 function get_request_lists(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { status } = req.query;
-            let postData = {
-                status: status === undefined ? null : status.toString().toUpperCase()
-            };
-            const statusEnum = postData.status !== null ? ["PENDING", "DITERIMA", "DITOLAK"].includes(postData.status.toString()) && postData.status.toString() : null;
+            function checkStatus(status) {
+                if (status == "all") {
+                    return null;
+                }
+                if (status == "onlyConfirmed") {
+                    return client_1.Konfirmasi["DITERIMA"];
+                }
+                if (status == "onlyPending") {
+                    return client_1.Konfirmasi["PENDING"];
+                }
+                if (status == "onlyRejected") {
+                    return client_1.Konfirmasi["DITOLAK"];
+                }
+                return null;
+            }
+            function checkUsed(used) {
+                if (used == "onlyUsed") {
+                    return true;
+                }
+                if (used == "onlyAvailable") {
+                    return false;
+                }
+                return null;
+            }
             const data = {
-                status: statusEnum == false ? null : statusEnum
+                keyword: req.query.keyword == undefined ? null : String(req.query.keyword),
+                idBagian: req.query.idBagian == undefined ? null : Number(req.query.idBagian),
+                idProduk: req.query.idProduk == undefined ? null : Number(req.query.idProduk),
+                status: req.query.status == undefined ? null : checkStatus(String(req.query.status)),
+                used: req.query.used == undefined ? null : checkUsed(String(req.query.used)),
+                year: req.query.year == undefined ? null : Number(req.query.year),
+                limit: req.query.limit == undefined ? null : Number(req.query.limit),
+                offset: req.query.offset == undefined ? null : Number(req.query.offset),
             };
             const listPending = yield adminProductRb.get_permintaan(data);
             if ('data' in listPending) {
@@ -355,7 +381,8 @@ function get_rb_return_by_product(req, res, next) {
             const offset = req.query.offset == undefined ? null : Number(req.query.offset);
             const startDate = req.query.startDate == undefined ? null : String(req.query.startDate);
             const endDate = req.query.endDate == undefined ? null : String(req.query.endDate);
-            const request = yield adminProductRb.get_rb_return_by_product(Number(id), status, limit, offset, startDate, endDate);
+            const numberFind = req.query.number == undefined ? null : String(req.query.number);
+            const request = yield adminProductRb.get_rb_return_by_product(Number(id), status, numberFind, limit, offset, startDate, endDate);
             if ('data' in request && 'count' in request) {
                 //console.log(request.data)
                 return res.status(200).json({
