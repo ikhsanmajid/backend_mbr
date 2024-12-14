@@ -114,6 +114,7 @@ export async function get_list_request(req: Request, res: Response, next: NextFu
         const data = {
             idBagian: res.locals.idBagian,
             keyword: req.query.keyword == undefined ? null : String(req.query.keyword),
+            idProduk: req.query.idProduk == undefined ? null : Number(req.query.idProduk),
             status: req.query.status == undefined ? null : checkStatus(String(req.query.status)),
             used: req.query.used == undefined ? null : checkUsed(String(req.query.used)),
             limit: req.query.limit == undefined ? null : Number(req.query.limit),
@@ -121,6 +122,8 @@ export async function get_list_request(req: Request, res: Response, next: NextFu
         }
 
         const request = await usersRB.get_request_by_bagian(data)
+
+        console.log(data)
 
         if ('data' in request! && 'count' in request!) {
             return res.status(200).json({
@@ -190,8 +193,9 @@ export async function get_rb_return_by_product(req: Request, res: Response, next
         const offset = req.query.offset == undefined ? null : Number(req.query.offset)
         const startDate = req.query.startDate == undefined ? null : String(req.query.startDate)
         const endDate = req.query.endDate == undefined ? null : String(req.query.endDate)
+        const numberFind = req.query.number == undefined ? null : String(req.query.number)
 
-        const request = await usersRB.get_rb_return_by_product(Number(id), status, limit, offset, startDate, endDate)
+        const request = await usersRB.get_rb_return_by_product(Number(id), status, numberFind, limit, offset, startDate, endDate)
 
         if ('data' in request! && 'count' in request!) {
             //console.log(request.data)

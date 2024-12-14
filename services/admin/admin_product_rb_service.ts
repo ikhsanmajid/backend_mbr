@@ -26,9 +26,9 @@ interface ReturnRBQuery {
     namaProduk: string,
     tanggal?: number,
     bulan?: number,
-    tahun?: number,
-    nomorAwal: number,
-    nomorAkhir: number,
+    tahun?: number | string,
+    nomorAwal: number | string,
+    nomorAkhir: number | string,
     RBBelumKembali: string
     JumlahOutstanding?: string
 }
@@ -84,13 +84,42 @@ interface NomorMBRList {
     tahun: number;
 }
 
+interface RequestRB {
+    id?: number | string;
+    oldid?: number;
+    idCreated?: number | string;
+    namaCreated?: string;
+    nikCreated?: string;
+    idBagianCreated?: number | string;
+    namaBagianCreated?: string;
+    timeCreated?: string | Date;
+    idConfirmed?: number | string;
+    timeConfirmed?: string | Date;
+    namaConfirmed?: string;
+    status?: Konfirmasi;
+    used?: boolean;
+    reason?: string | null;
+    data?: Array<{
+        idProduk: string;
+        mbr: [{
+            group_id: number,
+            no_mbr: string;
+            tipe_mbr: string;
+            jumlah: string;
+        }]
+    }>;
+}
+
 interface ModifiedPermintaan {
-    id: number;
-    createdBy: string;
-    createdByBagian: string;
-    createdAt: string;
-    confirmedBy: string | null;
-    confirmedAt: string | null;
+    id?: number | string;
+    createdBy?: string;
+    createdByBagian?: string;
+    createdAt?: string;
+    confirmedBy?: string | null;
+    confirmedAt?: string | null;
+    status?: string;
+    createdNIK?: string;
+    reason?: string | null;
 }
 
 interface RecapPermintaan {
@@ -348,66 +377,162 @@ export async function reject_permintaan(data: { id: string, action: string, time
     }
 }
 
+// keyword: req.query.keyword == undefined ? null : String(req.query.keyword),
+// idBagian: req.query.idBagian == undefined ? null : Number(req.query.idBagian),
+// idProduk: req.query.idProduk == undefined ? null : Number(req.query.idProduk),
+// status: req.query.status == undefined ? null : checkStatus(String(req.query.status)),
+// used: req.query.used == undefined ? null : checkUsed(String(req.query.used)),
+// limit: req.query.limit == undefined ? null : Number(req.query.limit),
+// offset: req.query.offset == undefined ? null : Number(req.query.offset),
+
 //ANCHOR - Mengambil semua permintaan sesuai status
-export async function get_permintaan(data: { status: string | null }): Promise<ResultModel<ModifiedPermintaan[] | null> | { data: string }> {
+export async function get_permintaan(data: {keyword: null | string, idBagian: number | null, idProduk: number | null, status: Konfirmasi | null, used: boolean | null, year: number | null, limit: number | null, offset: number | null}): Promise<ResultModel<ModifiedPermintaan[] | null> | { data: string }> {
     try {
-        const searchRequest = await prisma.permintaan.findMany({
-            where: {
-                status: data.status == null ? undefined : Konfirmasi[data.status as keyof typeof Konfirmasi]
-            },
-            select: {
-                id: true,
-                idPermintaanUsersCreatedFK: {
-                    select: {
-                        nama: true,
-                        nik: true,
-                        jabatanBagian: {
-                            select: {
-                                idBagianJabatanFK: {
-                                    select: {
-                                        idBagian: true,
-                                        idBagianFK: {
-                                            select: {
-                                                namaBagian: true
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                timeCreated: true,
-                idPermintaanUsersConfirmedFK: {
-                    select: {
-                        nama: true
-                    }
-                },
-                timeConfirmed: true,
-                status: true,
-                reason: true
-            }
+
+        const year = new Date().getFullYear()
+
+        const query = `SELECT 
+            r.id,
+            r.idCreated,
+            r.timeCreated,
+            r.idBagianCreated,
+            b.namaBagian AS namaBagianCreated,
+            r.idConfirmed,
+            ucr.nama AS namaCreated,
+            uc.nama AS namaConfirmed,
+            r.timeConfirmed,
+            ucr.nik AS nikCreated,
+            r.reason,
+            r.used,
+            r.status
+        FROM 
+            permintaan r
+            JOIN bagian b ON r.idBagianCreated = b.id
+            JOIN users ucr ON r.idCreated = ucr.id 
+            LEFT JOIN users uc ON r.idConfirmed = uc.id
+            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+            JOIN produk p ON d.idProduk = p.id
+        WHERE 
+            1=1
+            ${data.idBagian ? ` AND r.idBagianCreated = ${data.idBagian}` : ''}
+            ${(data.keyword !== null) ? `AND (
+                ucr.nama LIKE '%${data.keyword}%' OR
+                ucr.nik LIKE '%${data.keyword}%'
+            )` : ""}            
+            ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
+            ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
+            ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+            AND YEAR(r.timeCreated) = ${data.year ?? year}
+        GROUP BY 
+            r.id, r.idCreated, r.timeCreated, r.idBagianCreated, b.namaBagian, 
+            r.idConfirmed, r.timeConfirmed, r.STATUS, r.reason, r.used
+        ORDER BY 
+            r.timeCreated DESC
+        LIMIT ${data.limit ?? ''}
+        OFFSET ${data.offset ?? ''}
+        `
+        // const searchRequest = await prisma.permintaan.findMany({
+        //     where: {
+        //         status: data.status == null ? undefined : Konfirmasi[data.status as keyof typeof Konfirmasi]
+        //     },
+        //     select: {
+        //         id: true,
+        //         idPermintaanUsersCreatedFK: {
+        //             select: {
+        //                 nama: true,
+        //                 nik: true,
+        //                 jabatanBagian: {
+        //                     select: {
+        //                         idBagianJabatanFK: {
+        //                             select: {
+        //                                 idBagian: true,
+        //                                 idBagianFK: {
+        //                                     select: {
+        //                                         namaBagian: true
+        //                                     }
+        //                                 }
+        //                             }
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         },
+        //         timeCreated: true,
+        //         idPermintaanUsersConfirmedFK: {
+        //             select: {
+        //                 nama: true
+        //             }
+        //         },
+        //         timeConfirmed: true,
+        //         status: true,
+        //         reason: true
+        //     }
+        // })
+
+        const getRequest = await prisma.$queryRaw<RequestRB[]>(Prisma.sql([query]))
+
+        const result: ModifiedPermintaan[] = Array()
+
+        getRequest.forEach((request) => {
+            result.push({
+                id: Number(request.id!),
+                createdBy: request.namaCreated,
+                createdByBagian: request.namaBagianCreated,
+                createdAt: request.timeCreated!.toLocaleString("id-ID"),
+                confirmedBy: request.namaConfirmed || null,
+                confirmedAt: request.timeConfirmed?.toLocaleString("id-ID") || null,
+                status: request.status,
+                createdNIK: request.nikCreated,
+                reason: request.reason
+            })
         })
 
-        const result: ModifiedPermintaan[] = searchRequest.map((request) => ({
-            id: request.id,
-            createdBy: request.idPermintaanUsersCreatedFK!.nama,
-            createdNIK: request.idPermintaanUsersCreatedFK!.nik,
-            createdByBagian: request.idPermintaanUsersCreatedFK!.jabatanBagian[0].idBagianJabatanFK.idBagianFK.namaBagian,
-            createdAt: request.timeCreated!.toLocaleString("id-ID"),
-            confirmedBy: request.idPermintaanUsersConfirmedFK?.nama || null,
-            confirmedAt: request.timeConfirmed?.toLocaleString("id-ID") || null,
-            status: request.status,
-            reason: request.reason
-        }))
+        // const result: ModifiedPermintaan[] = getRequest.map((request) => ({
+        //     id: String(request.id!),
+        //     createdBy: request.namaCreated,
+        //     createdNIK: request.nikCreated,
+        //     createdByBagian: request.namaBagianCreated,
+        //     createdAt: request.timeCreated!.toLocaleString("id-ID"),
+        //     confirmedBy: request.namaConfirmed || null,
+        //     confirmedAt: request.timeConfirmed?.toLocaleString("id-ID") || null,
+        //     status: request.status,
+        //     reason: request.reason
+        // }))
 
-        const count = await prisma.permintaan.count({
-            where: {
-                status: data.status == null ? undefined : Konfirmasi[data.status as keyof typeof Konfirmasi]
-            }
-        })
+        // const count = await prisma.permintaan.count({
+        //     where: {
+        //         status: data.status == null ? undefined : Konfirmasi[data.status as keyof typeof Konfirmasi]
+        //     }
+        // })
 
-        return { data: result, count: count }
+        const queryCount = `SELECT 
+                COUNT(*) as "count"
+            FROM (
+                SELECT
+                    r.id AS id
+                FROM
+                    permintaan r
+                JOIN users ucr ON r.idCreated = ucr.id 
+                JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                JOIN produk p ON d.idProduk = p.id
+                WHERE 
+                1=1
+                    ${data.idBagian ? ` AND r.idBagianCreated = ${data.idBagian}` : ''}
+                    ${(data.keyword !== null) ? `AND (
+                        ucr.nama LIKE '%${data.keyword}%' OR
+                        ucr.nik LIKE '%${data.keyword}%'
+                    )` : ""}            
+                    ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
+                    ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
+                    ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+                    AND YEAR(r.timeCreated) = ${data.year ?? year}
+                GROUP BY
+                    r.id
+            ) as subquery;`
+
+        const count = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql([queryCount]))
+
+        return { data: result, count: Number(count[0].count) }
 
     } catch (error) {
         throw error
@@ -728,7 +853,7 @@ export async function get_nomor_permintaan_by_id(data: { idPermintaan: number })
 
 
 //ANCHOR - Get Permintaan RB Return Berdasarkan Produk
-export async function get_rb_return_by_product(id: number, status: string | null, limit: number | null, offset: number | null, startDate: string | null, endDate: string | null): Promise<ResultModel<ReturnRBResult[] | null> | { data: string }> {
+export async function get_rb_return_by_product(id: number, status: string | null, numberFind: string | null, limit: number | null, offset: number | null, startDate: string | null, endDate: string | null): Promise<ResultModel<ReturnRBResult[] | null> | { data: string }> {
     try {
         let query = `SELECT
             d.idPermintaanMbr AS id,
@@ -754,14 +879,15 @@ export async function get_rb_return_by_product(id: number, status: string | null
             ${(startDate !== null && endDate !== null) ? `AND (
 		    ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
 		    AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
-	        )` : ""}
+	        ) ` : ""}
         GROUP BY
             p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr          
         HAVING
             1=1 
+            ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
             ${(status === "belum") ? "AND RBBelumKembali > 0" : ""}
             ${(status === "outstanding") ? "AND JumlahOutstanding > 0" : ""}
-        ${(limit != null && offset != null) ? `LIMIT ${limit} OFFSET ${offset}` : ""}`
+            ${(limit != null && offset != null) ? `LIMIT ${limit} OFFSET ${offset}` : ""}`
 
         const getRequest = await prisma.$queryRaw<ReturnRBQuery[]>(Prisma.sql([query]))
 
@@ -784,6 +910,7 @@ export async function get_rb_return_by_product(id: number, status: string | null
                 d.idPermintaanMbr
             HAVING 
             1=1
+            ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
             ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
             ${status == "outstanding" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
             ) as subquery`
@@ -802,7 +929,7 @@ export async function get_rb_return_by_product(id: number, status: string | null
                 id: String(item.id),
                 namaProduk: item.namaProduk,
                 tanggalBulan: `${item.tanggal}-${item.bulan} `,
-                tahun: item.tahun,
+                tahun: String(item.tahun),
                 nomorAwal: item.nomorAwal,
                 nomorAkhir: item.nomorAkhir,
                 RBBelumKembali: String(item.RBBelumKembali),
@@ -874,7 +1001,7 @@ export async function get_rb_return_by_product_and_permintaan(id: number, idPerm
                 nomorMBR: item.nomorMBR,
                 namaProduk: item.namaProduk,
                 tanggalBulan: `${item.tanggal} -${item.bulan} `,
-                tahun: item.tahun,
+                tahun: String(item.tahun),
                 nomorAwal: item.nomorAwal,
                 nomorAkhir: item.nomorAkhir,
                 RBBelumKembali: String(item.RBBelumKembali)
