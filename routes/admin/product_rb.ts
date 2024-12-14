@@ -8,12 +8,7 @@ const authentication_middleware = [authentication.check_access_token]
 
 const router: Router = express.Router()
 
-router.get("/generateReport/", [], admin_product_rb.generate_report_rb_belum_kembali_perbagian)
-
 router.use(authentication_middleware)
-
-// Kategori
-router.post("/addCategory", [check_is_authorized_admin], admin_product_rb.add_category)
 
 // Permintaan RB
 router.get("/getRecap", [check_user_has_department], admin_product_rb.get_recap_request)
@@ -33,6 +28,8 @@ router.put("/updateNomorRBReturnAdmin/:idNomor", [check_is_authorized_admin],  a
 router.post("/confirmRBReturnAdmin/:id", [check_is_authorized_admin],  admin_product_rb.confirm_rb_return) // sudah dokumentasi
 
 // Generate Laporan
+router.get("/generateReport/", [check_is_authorized_admin], admin_product_rb.generate_report_rb_belum_kembali_perbagian)
+router.get("/generateReportDashboadAdmin/", [check_is_authorized_admin], admin_product_rb.generate_report_dashboard_admin)
 
 
 

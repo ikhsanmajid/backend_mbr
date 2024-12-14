@@ -13,6 +13,10 @@ router.use(authentication_middleware)
 
 //Kategori
 router.get("/getKategori", admin_product.get_kategori)
+router.get("/checkKategori", admin_product.check_kategori)
+router.patch("/updateCategory/:id", [check_is_authorized_admin], admin_product.update_kategori)
+router.post("/addCategory", [check_is_authorized_admin], admin_product.add_category)
+router.delete("/deleteCategory/:id", [check_is_authorized_admin], admin_product.delete_category)
 
 // Produk
 router.post("/addProduct", [check_is_authorized_admin], admin_product.add_product)

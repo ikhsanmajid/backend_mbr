@@ -166,8 +166,9 @@ function set_request_used(id) {
 //ANCHOR - Get Permintaan RB berdasarkan bagian
 function get_request_by_bagian(data) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
+        var _a, _b, _c, _d;
         try {
+            const year = new Date().getFullYear();
             const query = `SELECT 
             r.id,
             r.idCreated,
@@ -199,13 +200,14 @@ function get_request_by_bagian(data) {
             ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
             ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
             ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+            AND YEAR(r.timeCreated) = ${(_a = data.year) !== null && _a !== void 0 ? _a : year}
         GROUP BY 
             r.id, r.idCreated, r.timeCreated, r.idBagianCreated, b.namaBagian, 
             r.idConfirmed, r.timeConfirmed, r.STATUS, r.reason, r.used
         ORDER BY 
             r.timeCreated DESC
-        LIMIT ${(_a = data.limit) !== null && _a !== void 0 ? _a : ''}
-        OFFSET ${(_b = data.offset) !== null && _b !== void 0 ? _b : ''}`;
+        LIMIT ${(_b = data.limit) !== null && _b !== void 0 ? _b : ''}
+        OFFSET ${(_c = data.offset) !== null && _c !== void 0 ? _c : ''}`;
             // const getRequest = await prisma.permintaan.findMany({
             //     where: {
             //         idBagianCreated: data.idBagian ?? undefined,
@@ -311,6 +313,7 @@ function get_request_by_bagian(data) {
                     ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
                     ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
                     ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+                    AND YEAR(r.timeCreated) = ${(_d = data.year) !== null && _d !== void 0 ? _d : year}
                 GROUP BY
                     r.id
             ) as subquery;`;
@@ -414,8 +417,8 @@ function get_rb_return_by_product(id, status, numberFind, limit, offset, startDa
         WHERE
             d.idProduk = ${id}
             ${(startDate !== null && endDate !== null) ? `AND (
-		    ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		    AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+		    ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		    AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
 	        )` : ""}
         GROUP BY
             p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr 
@@ -437,8 +440,8 @@ function get_rb_return_by_product(id, status, numberFind, limit, offset, startDa
             WHERE
                 d.idProduk = ${id}
                 ${(startDate !== null && endDate !== null) ? `AND (
-		        ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		        AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+		        ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		        AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
 	            )` : ""}
             GROUP BY
                 d.idPermintaanMbr

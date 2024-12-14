@@ -55,7 +55,8 @@ function add_department(req, res, next) {
         try {
             let postData = {
                 namaBagian: req.body.nama_bagian,
-                isActive: req.body.is_active == undefined ? true : req.body.is_active === "true" ? true : false
+                isActive: req.body.is_active == undefined ? true : req.body.is_active === "true" ? true : false,
+                kategori: req.body.kategori == undefined ? undefined : Number(req.body.kategori),
             };
             const department = yield adminDepartment.add_department_model(postData);
             if ("data" in department) {
@@ -77,6 +78,7 @@ function find_all(req, res, next) {
         try {
             let getData = {
                 isActive: req.query.is_active == undefined ? undefined : req.query.is_active === "true" ? true : false,
+                manufaktur: req.query.manufaktur == undefined ? undefined : req.query.manufaktur === "yes" ? true : false,
                 limit: req.query.limit == undefined ? undefined : req.query.limit,
                 offset: req.query.offset == undefined ? undefined : req.query.offset,
                 search: (req.query.search == undefined || req.query.search.length == 0) ? undefined : req.query.search
@@ -171,12 +173,13 @@ function find_fixed_department(req, res, next) {
 }
 function update_department(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f;
         try {
             const postData = {
                 id: req.params.id,
                 namaBagian: ((_a = req.body) === null || _a === void 0 ? void 0 : _a.nama_bagian) == undefined ? undefined : (_b = req.body) === null || _b === void 0 ? void 0 : _b.nama_bagian,
-                isActive: ((_c = req.body) === null || _c === void 0 ? void 0 : _c.is_active) == undefined ? undefined : ((_d = req.body) === null || _d === void 0 ? void 0 : _d.is_active) === "true" ? true : false
+                isActive: ((_c = req.body) === null || _c === void 0 ? void 0 : _c.is_active) == undefined ? undefined : ((_d = req.body) === null || _d === void 0 ? void 0 : _d.is_active) === "true" ? true : false,
+                kategori: ((_e = req.body) === null || _e === void 0 ? void 0 : _e.kategori) == undefined ? undefined : Number((_f = req.body) === null || _f === void 0 ? void 0 : _f.kategori)
             };
             const department = yield adminDepartment.update_department_model(postData);
             if ("data" in department) {

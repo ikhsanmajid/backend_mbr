@@ -42,10 +42,7 @@ const authorization_1 = require("../../middleware/authorization");
 const admin_product_rb = __importStar(require("../../controller/admin/admin_product_rb"));
 const authentication_middleware = [authentication.check_access_token];
 const router = express_1.default.Router();
-router.get("/generateReport/", [], admin_product_rb.generate_report_rb_belum_kembali_perbagian);
 router.use(authentication_middleware);
-// Kategori
-router.post("/addCategory", [authorization_1.check_is_authorized_admin], admin_product_rb.add_category);
 // Permintaan RB
 router.get("/getRecap", [authorization_1.check_user_has_department], admin_product_rb.get_recap_request);
 router.get("/listPermintaan", [authorization_1.check_is_authorized_admin], admin_product_rb.get_request_lists);
@@ -62,4 +59,6 @@ router.get("/getRBReturnAdminIdPermintaan/:idPermintaan", [authorization_1.check
 router.put("/updateNomorRBReturnAdmin/:idNomor", [authorization_1.check_is_authorized_admin], admin_product_rb.set_nomor_rb_return); // sudah dokumentasi
 router.post("/confirmRBReturnAdmin/:id", [authorization_1.check_is_authorized_admin], admin_product_rb.confirm_rb_return); // sudah dokumentasi
 // Generate Laporan
+router.get("/generateReport/", [authorization_1.check_is_authorized_admin], admin_product_rb.generate_report_rb_belum_kembali_perbagian);
+router.get("/generateReportDashboadAdmin/", [authorization_1.check_is_authorized_admin], admin_product_rb.generate_report_dashboard_admin);
 exports.default = router;
