@@ -1040,7 +1040,7 @@ function generate_report_dashboard_admin() {
             //console.log(bulanTahun)
             const query = `SELECT
                 COUNT(CASE 
-                        WHEN n.status = "ACTIVE" 
+                        WHEN n.status = 'ACTIVE'
                         AND ((MONTH(r.timeCreated) <= ${bulanTahun[0]} AND YEAR(r.timeCreated) <= ${bulanTahun[1]}) OR r.timeCreated IS NULL)
                         THEN 1 
                         ELSE NULL 
