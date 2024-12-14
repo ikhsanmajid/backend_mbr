@@ -217,67 +217,154 @@ function reject_permintaan(data) {
         }
     });
 }
+// keyword: req.query.keyword == undefined ? null : String(req.query.keyword),
+// idBagian: req.query.idBagian == undefined ? null : Number(req.query.idBagian),
+// idProduk: req.query.idProduk == undefined ? null : Number(req.query.idProduk),
+// status: req.query.status == undefined ? null : checkStatus(String(req.query.status)),
+// used: req.query.used == undefined ? null : checkUsed(String(req.query.used)),
+// limit: req.query.limit == undefined ? null : Number(req.query.limit),
+// offset: req.query.offset == undefined ? null : Number(req.query.offset),
 //ANCHOR - Mengambil semua permintaan sesuai status
 function get_permintaan(data) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c, _d;
         try {
-            const searchRequest = yield prisma.permintaan.findMany({
-                where: {
-                    status: data.status == null ? undefined : client_1.Konfirmasi[data.status]
-                },
-                select: {
-                    id: true,
-                    idPermintaanUsersCreatedFK: {
-                        select: {
-                            nama: true,
-                            nik: true,
-                            jabatanBagian: {
-                                select: {
-                                    idBagianJabatanFK: {
-                                        select: {
-                                            idBagian: true,
-                                            idBagianFK: {
-                                                select: {
-                                                    namaBagian: true
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    timeCreated: true,
-                    idPermintaanUsersConfirmedFK: {
-                        select: {
-                            nama: true
-                        }
-                    },
-                    timeConfirmed: true,
-                    status: true,
-                    reason: true
-                }
-            });
-            const result = searchRequest.map((request) => {
-                var _a, _b;
-                return ({
-                    id: request.id,
-                    createdBy: request.idPermintaanUsersCreatedFK.nama,
-                    createdNIK: request.idPermintaanUsersCreatedFK.nik,
-                    createdByBagian: request.idPermintaanUsersCreatedFK.jabatanBagian[0].idBagianJabatanFK.idBagianFK.namaBagian,
+            const year = new Date().getFullYear();
+            const query = `SELECT 
+            r.id,
+            r.idCreated,
+            r.timeCreated,
+            r.idBagianCreated,
+            b.namaBagian AS namaBagianCreated,
+            r.idConfirmed,
+            ucr.nama AS namaCreated,
+            uc.nama AS namaConfirmed,
+            r.timeConfirmed,
+            ucr.nik AS nikCreated,
+            r.reason,
+            r.used,
+            r.status
+        FROM 
+            permintaan r
+            JOIN bagian b ON r.idBagianCreated = b.id
+            JOIN users ucr ON r.idCreated = ucr.id 
+            LEFT JOIN users uc ON r.idConfirmed = uc.id
+            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+            JOIN produk p ON d.idProduk = p.id
+        WHERE 
+            1=1
+            ${data.idBagian ? ` AND r.idBagianCreated = ${data.idBagian}` : ''}
+            ${(data.keyword !== null) ? `AND (
+                ucr.nama LIKE '%${data.keyword}%' OR
+                ucr.nik LIKE '%${data.keyword}%'
+            )` : ""}            
+            ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
+            ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
+            ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+            AND YEAR(r.timeCreated) = ${(_a = data.year) !== null && _a !== void 0 ? _a : year}
+        GROUP BY 
+            r.id, r.idCreated, r.timeCreated, r.idBagianCreated, b.namaBagian, 
+            r.idConfirmed, r.timeConfirmed, r.STATUS, r.reason, r.used
+        ORDER BY 
+            r.timeCreated DESC
+        LIMIT ${(_b = data.limit) !== null && _b !== void 0 ? _b : ''}
+        OFFSET ${(_c = data.offset) !== null && _c !== void 0 ? _c : ''}
+        `;
+            // const searchRequest = await prisma.permintaan.findMany({
+            //     where: {
+            //         status: data.status == null ? undefined : Konfirmasi[data.status as keyof typeof Konfirmasi]
+            //     },
+            //     select: {
+            //         id: true,
+            //         idPermintaanUsersCreatedFK: {
+            //             select: {
+            //                 nama: true,
+            //                 nik: true,
+            //                 jabatanBagian: {
+            //                     select: {
+            //                         idBagianJabatanFK: {
+            //                             select: {
+            //                                 idBagian: true,
+            //                                 idBagianFK: {
+            //                                     select: {
+            //                                         namaBagian: true
+            //                                     }
+            //                                 }
+            //                             }
+            //                         }
+            //                     }
+            //                 }
+            //             }
+            //         },
+            //         timeCreated: true,
+            //         idPermintaanUsersConfirmedFK: {
+            //             select: {
+            //                 nama: true
+            //             }
+            //         },
+            //         timeConfirmed: true,
+            //         status: true,
+            //         reason: true
+            //     }
+            // })
+            const getRequest = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
+            const result = Array();
+            getRequest.forEach((request) => {
+                var _a;
+                result.push({
+                    id: Number(request.id),
+                    createdBy: request.namaCreated,
+                    createdByBagian: request.namaBagianCreated,
                     createdAt: request.timeCreated.toLocaleString("id-ID"),
-                    confirmedBy: ((_a = request.idPermintaanUsersConfirmedFK) === null || _a === void 0 ? void 0 : _a.nama) || null,
-                    confirmedAt: ((_b = request.timeConfirmed) === null || _b === void 0 ? void 0 : _b.toLocaleString("id-ID")) || null,
+                    confirmedBy: request.namaConfirmed || null,
+                    confirmedAt: ((_a = request.timeConfirmed) === null || _a === void 0 ? void 0 : _a.toLocaleString("id-ID")) || null,
                     status: request.status,
+                    createdNIK: request.nikCreated,
                     reason: request.reason
                 });
             });
-            const count = yield prisma.permintaan.count({
-                where: {
-                    status: data.status == null ? undefined : client_1.Konfirmasi[data.status]
-                }
-            });
-            return { data: result, count: count };
+            // const result: ModifiedPermintaan[] = getRequest.map((request) => ({
+            //     id: String(request.id!),
+            //     createdBy: request.namaCreated,
+            //     createdNIK: request.nikCreated,
+            //     createdByBagian: request.namaBagianCreated,
+            //     createdAt: request.timeCreated!.toLocaleString("id-ID"),
+            //     confirmedBy: request.namaConfirmed || null,
+            //     confirmedAt: request.timeConfirmed?.toLocaleString("id-ID") || null,
+            //     status: request.status,
+            //     reason: request.reason
+            // }))
+            // const count = await prisma.permintaan.count({
+            //     where: {
+            //         status: data.status == null ? undefined : Konfirmasi[data.status as keyof typeof Konfirmasi]
+            //     }
+            // })
+            const queryCount = `SELECT 
+                COUNT(*) as "count"
+            FROM (
+                SELECT
+                    r.id AS id
+                FROM
+                    permintaan r
+                JOIN users ucr ON r.idCreated = ucr.id 
+                JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                JOIN produk p ON d.idProduk = p.id
+                WHERE 
+                1=1
+                    ${data.idBagian ? ` AND r.idBagianCreated = ${data.idBagian}` : ''}
+                    ${(data.keyword !== null) ? `AND (
+                        ucr.nama LIKE '%${data.keyword}%' OR
+                        ucr.nik LIKE '%${data.keyword}%'
+                    )` : ""}            
+                    ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
+                    ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
+                    ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+                    AND YEAR(r.timeCreated) = ${(_d = data.year) !== null && _d !== void 0 ? _d : year}
+                GROUP BY
+                    r.id
+            ) as subquery;`;
+            const count = yield prisma.$queryRaw(client_1.Prisma.sql([queryCount]));
+            return { data: result, count: Number(count[0].count) };
         }
         catch (error) {
             throw error;
@@ -578,7 +665,7 @@ function get_nomor_permintaan_by_id(data) {
     });
 }
 //ANCHOR - Get Permintaan RB Return Berdasarkan Produk
-function get_rb_return_by_product(id, status, limit, offset, startDate, endDate) {
+function get_rb_return_by_product(id, status, numberFind, limit, offset, startDate, endDate) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let query = `SELECT
@@ -605,14 +692,15 @@ function get_rb_return_by_product(id, status, limit, offset, startDate, endDate)
             ${(startDate !== null && endDate !== null) ? `AND (
 		    ( YEAR ( r.timeCreated ) = ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
 		    AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
-	        )` : ""}
+	        ) ` : ""}
         GROUP BY
             p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr          
         HAVING
             1=1 
+            ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
             ${(status === "belum") ? "AND RBBelumKembali > 0" : ""}
             ${(status === "outstanding") ? "AND JumlahOutstanding > 0" : ""}
-        ${(limit != null && offset != null) ? `LIMIT ${limit} OFFSET ${offset}` : ""}`;
+            ${(limit != null && offset != null) ? `LIMIT ${limit} OFFSET ${offset}` : ""}`;
             const getRequest = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
             const countQuery = `SELECT COUNT(*) as "count" FROM
             (SELECT
@@ -633,6 +721,7 @@ function get_rb_return_by_product(id, status, limit, offset, startDate, endDate)
                 d.idPermintaanMbr
             HAVING 
             1=1
+            ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
             ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
             ${status == "outstanding" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
             ) as subquery`;
@@ -646,7 +735,7 @@ function get_rb_return_by_product(id, status, limit, offset, startDate, endDate)
                     id: String(item.id),
                     namaProduk: item.namaProduk,
                     tanggalBulan: `${item.tanggal}-${item.bulan} `,
-                    tahun: item.tahun,
+                    tahun: String(item.tahun),
                     nomorAwal: item.nomorAwal,
                     nomorAkhir: item.nomorAkhir,
                     RBBelumKembali: String(item.RBBelumKembali),
@@ -709,7 +798,7 @@ function get_rb_return_by_product_and_permintaan(id, idPermintaan, status) {
                     nomorMBR: item.nomorMBR,
                     namaProduk: item.namaProduk,
                     tanggalBulan: `${item.tanggal} -${item.bulan} `,
-                    tahun: item.tahun,
+                    tahun: String(item.tahun),
                     nomorAwal: item.nomorAwal,
                     nomorAkhir: item.nomorAkhir,
                     RBBelumKembali: String(item.RBBelumKembali)
