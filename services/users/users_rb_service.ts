@@ -1,6 +1,5 @@
 import { PrismaClient, Prisma, TipeMBR, Konfirmasi, Status } from "@prisma/client";
 import { ResultModel } from "../../types/admin_types";
-import { count } from "console";
 
 
 //SECTION - Product Model Admin
@@ -9,14 +8,14 @@ const prisma = new PrismaClient();
 interface RequestRB {
     id?: number | string;
     oldid?: number;
-    idCreated?: number;
+    idCreated?: number | string;
     namaCreated?: string;
     nikCreated?: string;
-    idBagianCreated?: number;
+    idBagianCreated?: number | string;
     namaBagianCreated?: string;
-    timeCreated?: string;
-    idConfirmed?: number;
-    timeConfirmed?: string;
+    timeCreated?: string | Date;
+    idConfirmed?: number | string;
+    timeConfirmed?: string | Date;
     namaConfirmed?: string;
     status?: Konfirmasi;
     used?: boolean;
@@ -39,7 +38,7 @@ interface ReturnRBQuery {
     namaProduk: string,
     tanggal?: number,
     bulan?: number,
-    tahun?: number,
+    tahun?: string | number,
     nomorAwal: number,
     nomorAkhir: number,
     RBBelumKembali: string
@@ -228,85 +227,128 @@ export async function set_request_used(id: number): Promise<ResultModel<boolean>
 }
 
 //ANCHOR - Get Permintaan RB berdasarkan bagian
-export async function get_request_by_bagian(data: { idBagian: number | null, keyword: string | null, status: Konfirmasi | null, used: boolean | null, limit: number | null, offset: number | null }): Promise<ResultModel<RequestRB[] | null> | { data: string }> {
+export async function get_request_by_bagian(data: { idBagian: number | null, keyword: string | null, status: Konfirmasi | null, idProduk: number | null, used: boolean | null, limit: number | null, offset: number | null }): Promise<ResultModel<RequestRB[] | null> | { data: string }> {
     try {
-        const getRequest = await prisma.permintaan.findMany({
-            where: {
-                idBagianCreated: data.idBagian ?? undefined,
-                AND: [
-                    {
-                        OR: [
-                            {
-                                idPermintaanUsersCreatedFK: {
-                                    nama: {
-                                        contains: data.keyword ?? ""
-                                    }
-                                }
-                            },
-                            {
-                                idPermintaanUsersCreatedFK: {
-                                    nik: {
-                                        contains: data.keyword ?? ""
-                                    }
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        status: data.status == null ? undefined : data.status
-                    },
-                    {
-                        used: data.used ?? undefined
-                    }
-                ]
-            },
-            select: {
-                id: true,
-                idCreated: true,
-                timeCreated: true,
-                idBagianCreated: true,
-                idBagianCreatedFK: {
-                    select: {
-                        namaBagian: true
-                    }
-                },
-                idConfirmed: true,
-                idPermintaanUsersConfirmedFK: {
-                    select: {
-                        nama: true
-                    }
-                },
-                timeConfirmed: true,
-                status: true,
-                idPermintaanUsersCreatedFK: {
-                    select: {
-                        nik: true,
-                        nama: true
-                    }
-                },
-                reason: true,
-                used: true
-            },
-            orderBy: {
-                timeCreated: "desc"
-            },
-            skip: data.offset ?? undefined,
-            take: data.limit ?? undefined
-        })
+        const query = `SELECT 
+            r.id,
+            r.idCreated,
+            r.timeCreated,
+            r.idBagianCreated,
+            b.namaBagian AS namaBagianCreated,
+            r.idConfirmed,
+            ucr.nama AS namaCreated,
+            uc.nama AS namaConfirmed,
+            r.timeConfirmed,
+            ucr.nik AS nikCreated,
+            r.reason,
+            r.used,
+            r.status
+        FROM 
+            permintaan r
+            JOIN bagian b ON r.idBagianCreated = b.id
+            JOIN users ucr ON r.idCreated = ucr.id 
+            LEFT JOIN users uc ON r.idConfirmed = uc.id
+            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+            JOIN produk p ON d.idProduk = p.id
+        WHERE 
+            1=1
+            ${data.idBagian ? ` AND r.idBagianCreated = ${data.idBagian}` : ''}
+            ${(data.keyword !== null) ? `AND (
+                ucr.nama LIKE '%${data.keyword}%' OR
+                ucr.nik LIKE '%${data.keyword}%'
+            )` : ""}            
+            ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
+            ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
+            ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+        GROUP BY 
+            r.id, r.idCreated, r.timeCreated, r.idBagianCreated, b.namaBagian, 
+            r.idConfirmed, r.timeConfirmed, r.STATUS, r.reason, r.used
+        ORDER BY 
+            r.timeCreated DESC
+        LIMIT ${data.limit ?? ''}
+        OFFSET ${data.offset ?? ''}`
+
+        // const getRequest = await prisma.permintaan.findMany({
+        //     where: {
+        //         idBagianCreated: data.idBagian ?? undefined,
+        //         AND: [
+        //             {
+        //                 OR: [
+        //                     {
+        //                         idPermintaanUsersCreatedFK: {
+        //                             nama: {
+        //                                 contains: data.keyword ?? ""
+        //                             }
+        //                         }
+        //                     },
+        //                     {
+        //                         idPermintaanUsersCreatedFK: {
+        //                             nik: {
+        //                                 contains: data.keyword ?? ""
+        //                             }
+        //                         }
+        //                     }
+        //                 ]
+        //             },
+        //             {
+        //                 status: data.status == null ? undefined : data.status
+        //             },
+        //             {
+        //                 used: data.used ?? undefined
+        //             },
+        //             {
+        //             }
+        //         ]
+        //     },
+        //     select: {
+        //         id: true,
+        //         idCreated: true,
+        //         timeCreated: true,
+        //         idBagianCreated: true,
+        //         idBagianCreatedFK: {
+        //             select: {
+        //                 namaBagian: true
+        //             }
+        //         },
+        //         idConfirmed: true,
+        //         idPermintaanUsersConfirmedFK: {
+        //             select: {
+        //                 nama: true
+        //             }
+        //         },
+        //         timeConfirmed: true,
+        //         status: true,
+        //         idPermintaanUsersCreatedFK: {
+        //             select: {
+        //                 nik: true,
+        //                 nama: true
+        //             }
+        //         },
+        //         reason: true,
+        //         used: true
+        //     },
+        //     orderBy: {
+        //         timeCreated: "desc"
+        //     },
+        //     skip: data.offset ?? undefined,
+        //     take: data.limit ?? undefined
+        // })
+
+        const getRequest = await prisma.$queryRaw<RequestRB[]>(Prisma.sql([query]))
 
         const result: RequestRB[] = Array()
 
         getRequest.map(item => {
             result.push({
-                id: item.id,
-                idCreated: item.idCreated,
-                namaCreated: item.idPermintaanUsersCreatedFK?.nama,
-                nikCreated: item.idPermintaanUsersCreatedFK?.nik,
-                idBagianCreated: item.idBagianCreated,
-                namaBagianCreated: item.idBagianCreatedFK?.namaBagian,
+                id: String(item.id),
+                idCreated: String(item.idCreated),
+                namaCreated: item.namaCreated,
+                nikCreated: item.nikCreated,
+                idBagianCreated: String(item.idBagianCreated),
+                namaBagianCreated: item.namaBagianCreated,
                 timeCreated: item.timeCreated?.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }),
-                idConfirmed: item.idConfirmed!,
-                namaConfirmed: item.idPermintaanUsersConfirmedFK?.nama,
+                idConfirmed: String(item.idConfirmed!),
+                namaConfirmed: item.namaConfirmed,
                 timeConfirmed: item.timeConfirmed?.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }),
                 used: item.used,
                 reason: item.reason,
@@ -314,40 +356,67 @@ export async function get_request_by_bagian(data: { idBagian: number | null, key
             })
         })
 
+        const queryCount = `SELECT 
+                COUNT(*) as "count"
+            FROM (
+                SELECT
+                    r.id AS id
+                FROM
+                    permintaan r
+                JOIN users ucr ON r.idCreated = ucr.id 
+                JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                JOIN produk p ON d.idProduk = p.id
+                WHERE 
+                1=1
+                    ${data.idBagian ? ` AND r.idBagianCreated = ${data.idBagian}` : ''}
+                    ${(data.keyword !== null) ? `AND (
+                        ucr.nama LIKE '%${data.keyword}%' OR
+                        ucr.nik LIKE '%${data.keyword}%'
+                    )` : ""}            
+                    ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
+                    ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
+                    ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
+                GROUP BY
+                    r.id
+            ) as subquery;`
 
-        const count = await prisma.permintaan.count({
-            where: {
-                idBagianCreated: data.idBagian ?? undefined,
-                AND: [
-                    {
-                        OR: [
-                            {
-                                idPermintaanUsersCreatedFK: {
-                                    nama: {
-                                        contains: data.keyword ?? ""
-                                    }
-                                }
-                            },
-                            {
-                                idPermintaanUsersCreatedFK: {
-                                    nik: {
-                                        contains: data.keyword ?? ""
-                                    }
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        status: data.status == null ? undefined : data.status
-                    },
-                    {
-                        used: data.used ?? undefined
-                    }
-                ]
-            },
-        })
+        // const count = await prisma.permintaan.count({
+        //     where: {
+        //         idBagianCreated: data.idBagian ?? undefined,
+        //         AND: [
+        //             {
+        //                 OR: [
+        //                     {
+        //                         idPermintaanUsersCreatedFK: {
+        //                             nama: {
+        //                                 contains: data.keyword ?? ""
+        //                             }
+        //                         }
+        //                     },
+        //                     {
+        //                         idPermintaanUsersCreatedFK: {
+        //                             nik: {
+        //                                 contains: data.keyword ?? ""
+        //                             }
+        //                         }
+        //                     }
+        //                 ]
+        //             },
+        //             {
+        //                 status: data.status == null ? undefined : data.status
+        //             },
+        //             {
+        //                 used: data.used ?? undefined
+        //             }
+        //         ]
+        //     },
+        // })
 
-        return { data: result, count: count }
+        const count = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql([queryCount]))
+
+        //console.log(count)
+
+        return { data: result, count: Number(count[0].count) }
     } catch (error) {
         throw error
     }
@@ -365,7 +434,12 @@ export async function get_request_by_id(id: number): Promise<ResultModel<Request
                 idProduk: true,
                 nomorMBR: true,
                 tipeMBR: true,
-                jumlah: true
+                jumlah: true,
+                idPermintaanMBR : {
+                    select: {
+                        status: true,
+                    }
+                }
             }
         })
 
@@ -385,7 +459,7 @@ export async function get_request_by_id(id: number): Promise<ResultModel<Request
 }
 
 //ANCHOR - Get Permintaan RB Return Berdasarkan Produk
-export async function get_rb_return_by_product(id: number, status: string | null, limit: number | null, offset: number | null, startDate: string | null, endDate: string | null): Promise<ResultModel<ReturnRBResult[] | null> | { data: string }> {
+export async function get_rb_return_by_product(id: number, status: string | null, numberFind: string | null, limit: number | null, offset: number | null, startDate: string | null, endDate: string | null): Promise<ResultModel<ReturnRBResult[] | null> | { data: string }> {
     try {
         let query = `SELECT
             d.idPermintaanMbr AS "id",
@@ -412,9 +486,11 @@ export async function get_rb_return_by_product(id: number, status: string | null
 		    AND ( YEAR ( r.timeCreated ) = ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
 	        )` : ""}
         GROUP BY
-            p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr
-            
-        ${status == "belum" ? `HAVING COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
+            p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr 
+        HAVING 
+        1=1           
+        ${status == "belum" ? ` AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
+        ${(numberFind !== null) ? ` AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
         ${limit != null && offset != null ? `LIMIT ${limit} OFFSET ${offset}` : ""}`
 
         const getRequest = await prisma.$queryRaw<ReturnRBQuery[]>(Prisma.sql([query]))
@@ -436,7 +512,10 @@ export async function get_rb_return_by_product(id: number, status: string | null
 	            )` : ""}
             GROUP BY
                 d.idPermintaanMbr
-            ${status == "belum" ? `HAVING COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
+            HAVING
+            1=1
+            ${(numberFind !== null) ? ` AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
+            ${status == "belum" ? ` AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
             ) as subquery`
 
         const getCount = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql([countQuery]))
@@ -453,7 +532,7 @@ export async function get_rb_return_by_product(id: number, status: string | null
                 id: String(item.id),
                 namaProduk: item.namaProduk,
                 tanggalBulan: `${item.tanggal}-${item.bulan} `,
-                tahun: item.tahun,
+                tahun: String(item.tahun),
                 nomorAwal: item.nomorAwal,
                 nomorAkhir: item.nomorAkhir,
                 RBBelumKembali: String(item.RBBelumKembali)
@@ -513,7 +592,7 @@ export async function get_rb_return_by_product_and_permintaan(id: number, idPerm
                 nomorMBR: item.nomorMBR,
                 namaProduk: item.namaProduk,
                 tanggalBulan: `${item.tanggal} -${item.bulan} `,
-                tahun: item.tahun,
+                tahun: String(item.tahun),
                 nomorAwal: item.nomorAwal,
                 nomorAkhir: item.nomorAkhir,
                 RBBelumKembali: String(item.RBBelumKembali)

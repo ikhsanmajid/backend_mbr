@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import * as adminProductRb from "../../services/admin/admin_product_rb_service";
-import { Status } from "@prisma/client";
+import { Konfirmasi, Status } from "@prisma/client";
 import * as exceljs from "exceljs"
 
 interface kategori {
@@ -129,16 +129,48 @@ export async function get_recap_request(req: Request, res: Response, next: NextF
 //ANCHOR - menampilkan semua data permintaan berdasarkan status PENDING | DITERIMA | DITOLAK | ALL
 export async function get_request_lists(req: Request, res: Response, next: NextFunction) {
     try {
-        const { status } = req.query
+        function checkStatus(status: string) {
 
-        let postData: { status: string | null } = {
-            status: status === undefined ? null : status.toString().toUpperCase()
+            if (status == "all") {
+                return null
+            }
+
+            if (status == "onlyConfirmed") {
+                return Konfirmasi["DITERIMA"]
+            }
+
+            if (status == "onlyPending") {
+                return Konfirmasi["PENDING"]
+            }
+
+            if (status == "onlyRejected") {
+                return Konfirmasi["DITOLAK"]
+            }
+
+            return null
         }
 
-        const statusEnum = postData.status !== null ? ["PENDING", "DITERIMA", "DITOLAK"].includes(postData.status!.toString()) && postData.status!.toString() : null
+        function checkUsed(used: string) {
+            if (used == "onlyUsed") {
+                return true
+            }
 
-        const data: { status: string | null } = {
-            status: statusEnum == false ? null : statusEnum
+            if (used == "onlyAvailable") {
+                return false
+            }
+
+            return null
+        }
+
+        const data = {
+            keyword: req.query.keyword == undefined ? null : String(req.query.keyword),
+            idBagian: req.query.idBagian == undefined ? null : Number(req.query.idBagian),
+            idProduk: req.query.idProduk == undefined ? null : Number(req.query.idProduk),
+            status: req.query.status == undefined ? null : checkStatus(String(req.query.status)),
+            used: req.query.used == undefined ? null : checkUsed(String(req.query.used)),
+            year: req.query.year == undefined ? null : Number(req.query.year),
+            limit: req.query.limit == undefined ? null : Number(req.query.limit),
+            offset: req.query.offset == undefined ? null : Number(req.query.offset),
         }
 
         const listPending: any = await adminProductRb.get_permintaan(data)
@@ -316,8 +348,9 @@ export async function get_rb_return_by_product(req: Request, res: Response, next
         const offset = req.query.offset == undefined ? null : Number(req.query.offset)
         const startDate = req.query.startDate == undefined ? null : String(req.query.startDate)
         const endDate = req.query.endDate == undefined ? null : String(req.query.endDate)
+        const numberFind = req.query.number == undefined ? null : String(req.query.number)
 
-        const request = await adminProductRb.get_rb_return_by_product(Number(id), status, limit, offset, startDate, endDate)
+        const request = await adminProductRb.get_rb_return_by_product(Number(id), status, numberFind, limit, offset, startDate, endDate)
 
         if ('data' in request! && 'count' in request!) {
             //console.log(request.data)
