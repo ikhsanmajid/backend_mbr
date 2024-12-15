@@ -343,6 +343,8 @@ export async function generate_report_serah_terima(req: Request, res: Response, 
             });
         }
 
+        console.log(convertToUTC(startDate), convertToUTC(endDate))
+
         const request = await usersRB.generate_report_serah_terima(idBagian, convertToUTC(startDate), convertToUTC(endDate))
 
         if ('data' in request!) {

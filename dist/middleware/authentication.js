@@ -54,7 +54,7 @@ const BadRequestError_1 = __importDefault(require("../helper/errors/BadRequestEr
 const jwt = jsonwebtoken;
 function generate_access_token(userinfo) {
     return __awaiter(this, void 0, void 0, function* () {
-        const access_token = yield jwt.sign(userinfo, process.env.TOKEN_SECRET, { expiresIn: '8h' });
+        const access_token = yield jwt.sign(userinfo, process.env.TOKEN_SECRET, { expiresIn: '2h' });
         //console.log(access_token)
         return access_token;
     });
@@ -94,7 +94,7 @@ exports.local = new passport_local_1.Strategy({ usernameField: "email" }, functi
                             // },
                             // expires_at: jwt.decode(access_token) as any
                         };
-                        console.log(result);
+                        //console.log(result)
                         return done(null, result);
                     }
                     else {

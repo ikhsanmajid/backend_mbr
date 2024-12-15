@@ -55,4 +55,6 @@ router.patch("/updateUser/:id", [authorization_1.check_is_authorized_admin], adm
 router.patch("/updateUserJabatan", [authorization_1.check_is_authorized_admin], admin_users.update_user_department_employment); // sudah dokumentasi
 router.delete("/deleteUser/:id", [authorization_1.check_is_authorized_admin], admin_users.hard_delete_user); // sudah dokumentasi
 router.delete("/deleteJabatan/:id", [authorization_1.check_is_authorized_admin], admin_users.delete_user_department_employment); // sudah dokumentasi
+// update password
+router.patch("/updatePassword/:id", [authorization_1.get_user_id], admin_users.update_password); // sudah dokumentasi
 exports.default = router;

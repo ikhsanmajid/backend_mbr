@@ -44,6 +44,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.check_is_authorized_admin = check_is_authorized_admin;
 exports.check_user_has_department = check_user_has_department;
+exports.get_user_id = get_user_id;
 exports.get_user_department = get_user_department;
 exports.check_user_same_department = check_user_same_department;
 const users = __importStar(require("../services/admin/admin_users_service"));
@@ -91,6 +92,22 @@ function check_user_has_department(req, res, next) {
             }
         }
         return res.status(204);
+    });
+}
+function get_user_id(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const data = { idUser: res.locals.userinfo.id };
+        if (data.idUser == undefined) {
+            return res.status(403).json({
+                type: "error",
+                code: "A001",
+                message: "Belum ada ID. Hubungi Admin untuk didaftarkan!"
+            });
+        }
+        else {
+            res.locals.idUser = data.idUser;
+            return next();
+        }
     });
 }
 function get_user_department(req, res, next) {

@@ -54,6 +54,7 @@ router.get("/listNomorUrutByIdPermintaan", admin_product_rb.get_nomor_request_by
 router.post("/confirmPermintaan/:id", [authorization_1.check_is_authorized_admin], admin_product_rb.confirm_request);
 // Pengembalian RB
 router.get("/getRBReturnAdminByProduct/:id", [authorization_1.check_is_authorized_admin], admin_product_rb.get_rb_return_by_product); // sudah dokumentasi
+router.get("/getRBReturnAdminByBagian/", [authorization_1.check_is_authorized_admin], admin_product_rb.get_rb_return_by_bagian); // sudah dokumentasi
 router.get("/getRBReturnAdminByProduct/:id/:idPermintaan", [authorization_1.check_is_authorized_admin], admin_product_rb.get_rb_return_by_product_and_permintaan); // sudah dokumentasi
 router.get("/getRBReturnAdminIdPermintaan/:idPermintaan", [authorization_1.check_is_authorized_admin], admin_product_rb.get_rb_return_by_id_permintaan); // sudah dokumentasi
 router.put("/updateNomorRBReturnAdmin/:idNomor", [authorization_1.check_is_authorized_admin], admin_product_rb.set_nomor_rb_return); // sudah dokumentasi

@@ -18,6 +18,7 @@ exports.get_department_user_by_id = get_department_user_by_id;
 exports.get_detail_user_model = get_detail_user_model;
 exports.find_all_users_model = find_all_users_model;
 exports.update_user_model = update_user_model;
+exports.update_user_password_model = update_user_password_model;
 exports.delete_users_model = delete_users_model;
 exports.delete_user_department_model = delete_user_department_model;
 exports.update_user_department_model = update_user_department_model;
@@ -304,6 +305,32 @@ function update_user_model(data) {
                     password: password !== null && password !== void 0 ? password : undefined,
                     isActive: data.isActive,
                     isAdmin: data.isAdmin
+                },
+                select: {
+                    id: true,
+                    nik: true,
+                    nama: true,
+                    email: true,
+                    isActive: true,
+                    isAdmin: true
+                }
+            });
+            return { data: user };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+function update_user_password_model(id, password) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const user = yield prisma.users.update({
+                where: {
+                    id: id
+                },
+                data: {
+                    password: password
                 },
                 select: {
                     id: true,
