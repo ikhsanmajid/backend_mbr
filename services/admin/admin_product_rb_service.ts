@@ -176,6 +176,11 @@ interface NomorPermintaanById {
     group_id: number;
 }
 
+export interface ILaporanPembuatanRB {
+    namaJenisBagian: string;
+    data: { total: number; late: number; month: number }[]
+}
+
 //ANCHOR - Tambah Kategori
 export async function add_category(data: kategori): Promise<ResultModel<kategori | null> | { data: string }> {
     try {
@@ -1326,3 +1331,69 @@ export async function generate_report_dashboard_admin(): Promise<ResultModel<{ R
         throw error
     }
 }
+
+//ANCHOR - Generate Report Dashboard Admin
+export async function generate_report_pembuatan_rb(tahun: number): Promise<ResultModel<ILaporanPembuatanRB[] | null>> {
+    try {
+        const query = `SELECT
+            j.namaJenisBagian,
+            COUNT( CASE WHEN n.id IS NOT NULL THEN 1 ELSE NULL END ) AS total,
+            COUNT( CASE WHEN n.id IS NOT NULL AND DATEDIFF( r.timeConfirmed, r.timeCreated ) > 2 THEN 1 ELSE NULL END ) AS late,
+            MONTH ( r.timeCreated ) AS bulan,
+            YEAR ( r.timeCreated ) AS tahun 
+        FROM
+            permintaan r
+            LEFT JOIN bagian b ON r.idBagianCreated = b.id
+            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+            JOIN nomormbr n ON d.id = n.idDetailPermintaan
+            RIGHT JOIN jenis_bagian j ON b.idJenisBagian = j.id 
+        WHERE
+            j.id IN ( 1, 2 ) 
+            AND YEAR ( r.timeCreated ) = ${tahun}
+        GROUP BY
+            j.namaJenisBagian,
+            MONTH ( r.timeCreated ),
+            YEAR ( r.timeCreated );`
+
+        const request = await prisma.$queryRaw<{ namaJenisBagian: string, total: number, late: number, bulan: number, tahun: number }[]>(Prisma.sql([query]))
+
+        if (request.length == 0) {
+            return { data: [] }
+        }
+
+        const groupedData = request.reduce<ILaporanPembuatanRB[]>((acc, curr) => {
+            // Cari apakah sudah ada elemen dengan namaJenisBagian yang sama
+            const existingGroup = acc.find(item => item.namaJenisBagian === curr.namaJenisBagian);
+
+            if (existingGroup) {
+                // Jika ada, tambahkan data ke array `data`
+                existingGroup.data.push({
+                    total: Number(curr.total),
+                    late: Number(curr.late),
+                    month: Number(curr.bulan)
+                });
+            } else {
+                // Jika belum ada, buat grup baru
+                acc.push({
+                    namaJenisBagian: curr.namaJenisBagian,
+                    data: [{
+                        total: Number(curr.total),
+                        late: Number(curr.late),
+                        month: Number(curr.bulan)
+                    }]
+                });
+            }
+
+            return acc;
+        }, []);
+
+
+
+        return { data: groupedData }
+
+    } catch (error) {
+        throw error
+    }
+}
+
+

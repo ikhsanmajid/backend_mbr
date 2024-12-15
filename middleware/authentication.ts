@@ -8,7 +8,7 @@ import BadRequestError from "../helper/errors/BadRequestError";
 const jwt = jsonwebtoken
 
 async function generate_access_token(userinfo: any) {
-    const access_token = await jwt.sign(userinfo, process.env.TOKEN_SECRET!, { expiresIn: '8h' })
+    const access_token = await jwt.sign(userinfo, process.env.TOKEN_SECRET!, { expiresIn: '2h' })
     //console.log(access_token)
     return access_token
 }
@@ -57,7 +57,7 @@ export const local = new LocalStrategy({ usernameField: "email" }, async functio
                         
                     }
 
-                    console.log(result)
+                    //console.log(result)
                     return done(null, result)
 
                 } else {

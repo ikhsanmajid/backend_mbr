@@ -323,6 +323,32 @@ export async function update_user_model(data: any): Promise<ResultModel<User>> {
     }
 }
 
+export async function update_user_password_model(id: number, password: string): Promise<ResultModel<User>> {
+    try {
+        const user = await prisma.users.update({
+            where: {
+                id: id
+            },
+            data: {
+                password: password
+            },
+            select: {
+                id: true,
+                nik: true,
+                nama: true,
+                email: true,
+                isActive: true,
+                isAdmin: true
+            }
+        })
+
+        return { data: user }
+
+    } catch (error: any) {
+        throw error
+    }
+}
+
 export async function delete_users_model(data: any): Promise<ResultModel<User>> {
     try {
         const user = await prisma.users.delete({

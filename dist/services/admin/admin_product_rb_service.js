@@ -29,6 +29,7 @@ exports.set_nomor_rb_return = set_nomor_rb_return;
 exports.confirm_rb_return = confirm_rb_return;
 exports.get_laporan_rb_belum_kembali_perbagian = get_laporan_rb_belum_kembali_perbagian;
 exports.generate_report_dashboard_admin = generate_report_dashboard_admin;
+exports.generate_report_pembuatan_rb = generate_report_pembuatan_rb;
 const client_1 = require("@prisma/client");
 //SECTION - Product Model Admin
 const prisma = new client_1.PrismaClient();
@@ -1093,6 +1094,64 @@ function generate_report_dashboard_admin() {
                     RBDibuat: resultRBDibuat
                 }
             };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+//ANCHOR - Generate Report Dashboard Admin
+function generate_report_pembuatan_rb(tahun) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const query = `SELECT
+            j.namaJenisBagian,
+            COUNT( CASE WHEN n.id IS NOT NULL THEN 1 ELSE NULL END ) AS total,
+            COUNT( CASE WHEN n.id IS NOT NULL AND DATEDIFF( r.timeConfirmed, r.timeCreated ) > 2 THEN 1 ELSE NULL END ) AS late,
+            MONTH ( r.timeCreated ) AS bulan,
+            YEAR ( r.timeCreated ) AS tahun 
+        FROM
+            permintaan r
+            LEFT JOIN bagian b ON r.idBagianCreated = b.id
+            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+            JOIN nomormbr n ON d.id = n.idDetailPermintaan
+            RIGHT JOIN jenis_bagian j ON b.idJenisBagian = j.id 
+        WHERE
+            j.id IN ( 1, 2 ) 
+            AND YEAR ( r.timeCreated ) = ${tahun}
+        GROUP BY
+            j.namaJenisBagian,
+            MONTH ( r.timeCreated ),
+            YEAR ( r.timeCreated );`;
+            const request = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
+            if (request.length == 0) {
+                return { data: [] };
+            }
+            const groupedData = request.reduce((acc, curr) => {
+                // Cari apakah sudah ada elemen dengan namaJenisBagian yang sama
+                const existingGroup = acc.find(item => item.namaJenisBagian === curr.namaJenisBagian);
+                if (existingGroup) {
+                    // Jika ada, tambahkan data ke array `data`
+                    existingGroup.data.push({
+                        total: Number(curr.total),
+                        late: Number(curr.late),
+                        month: Number(curr.bulan)
+                    });
+                }
+                else {
+                    // Jika belum ada, buat grup baru
+                    acc.push({
+                        namaJenisBagian: curr.namaJenisBagian,
+                        data: [{
+                                total: Number(curr.total),
+                                late: Number(curr.late),
+                                month: Number(curr.bulan)
+                            }]
+                    });
+                }
+                return acc;
+            }, []);
+            return { data: groupedData };
         }
         catch (error) {
             throw error;

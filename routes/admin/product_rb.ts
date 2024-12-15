@@ -30,6 +30,7 @@ router.post("/confirmRBReturnAdmin/:id", [check_is_authorized_admin],  admin_pro
 // Generate Laporan
 router.get("/generateReport/", [check_is_authorized_admin], admin_product_rb.generate_report_rb_belum_kembali_perbagian)
 router.get("/generateReportDashboadAdmin/", [check_is_authorized_admin], admin_product_rb.generate_report_dashboard_admin)
+router.get("/generateReportPembuatanRB/", [check_is_authorized_admin], admin_product_rb.generate_report_pembuatan_rb)
 
 
 

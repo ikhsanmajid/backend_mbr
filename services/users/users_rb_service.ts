@@ -72,6 +72,17 @@ interface ReturnNomorRBResult {
     tahun?: number;
 }
 
+export interface ILaporanSerahTerimaRB {
+    namaProduk: string;
+    tipeMBR: TipeMBR;
+    nomorMBR: string;
+    nomorBatch: string;
+    status: Status;
+    nomorUrut: string;
+    namaBagian: string;
+}
+
+
 
 //ANCHOR - Tambah Permintaan RB
 export async function add_request(data: RequestRB): Promise<ResultModel<{ requestRB: RequestRB, detailPermintaan: DetailPermintaan[] } | null>> {
@@ -104,7 +115,7 @@ export async function add_request(data: RequestRB): Promise<ResultModel<{ reques
                         idPermintaanMbr: parseInt(result.id!.toString()),
                         idProduk: parseInt(item.idProduk),
                         group_id: index,
-                        nomorMBR: mbr.no_mbr,
+                        nomorMBR: mbr.no_mbr.trim(),
                         tipeMBR: mbr.tipe_mbr == "PO" ? TipeMBR["PO"] : TipeMBR["PS"],
                         jumlah: parseInt(mbr.jumlah)
                     })
@@ -172,9 +183,9 @@ export async function edit_request(data: RequestRB): Promise<ResultModel<{ reque
                         idPermintaanMbr: parseInt(result.id!.toString()),
                         idProduk: parseInt(item.idProduk),
                         group_id: index,
-                        nomorMBR: mbr.no_mbr,
+                        nomorMBR: mbr.no_mbr.trim(),
                         tipeMBR: mbr.tipe_mbr == "PO" ? TipeMBR["PO"] : TipeMBR["PS"],
-                        jumlah: parseInt(mbr.jumlah)
+                        jumlah: parseInt(mbr.jumlah.trim())
                     })
                 })
 
@@ -271,72 +282,6 @@ export async function get_request_by_bagian(data: { idBagian: number | null, yea
         LIMIT ${data.limit ?? ''}
         OFFSET ${data.offset ?? ''}`
 
-        // const getRequest = await prisma.permintaan.findMany({
-        //     where: {
-        //         idBagianCreated: data.idBagian ?? undefined,
-        //         AND: [
-        //             {
-        //                 OR: [
-        //                     {
-        //                         idPermintaanUsersCreatedFK: {
-        //                             nama: {
-        //                                 contains: data.keyword ?? ""
-        //                             }
-        //                         }
-        //                     },
-        //                     {
-        //                         idPermintaanUsersCreatedFK: {
-        //                             nik: {
-        //                                 contains: data.keyword ?? ""
-        //                             }
-        //                         }
-        //                     }
-        //                 ]
-        //             },
-        //             {
-        //                 status: data.status == null ? undefined : data.status
-        //             },
-        //             {
-        //                 used: data.used ?? undefined
-        //             },
-        //             {
-        //             }
-        //         ]
-        //     },
-        //     select: {
-        //         id: true,
-        //         idCreated: true,
-        //         timeCreated: true,
-        //         idBagianCreated: true,
-        //         idBagianCreatedFK: {
-        //             select: {
-        //                 namaBagian: true
-        //             }
-        //         },
-        //         idConfirmed: true,
-        //         idPermintaanUsersConfirmedFK: {
-        //             select: {
-        //                 nama: true
-        //             }
-        //         },
-        //         timeConfirmed: true,
-        //         status: true,
-        //         idPermintaanUsersCreatedFK: {
-        //             select: {
-        //                 nik: true,
-        //                 nama: true
-        //             }
-        //         },
-        //         reason: true,
-        //         used: true
-        //     },
-        //     orderBy: {
-        //         timeCreated: "desc"
-        //     },
-        //     skip: data.offset ?? undefined,
-        //     take: data.limit ?? undefined
-        // })
-
         const getRequest = await prisma.$queryRaw<RequestRB[]>(Prisma.sql([query]))
 
         const result: RequestRB[] = Array()
@@ -384,38 +329,6 @@ export async function get_request_by_bagian(data: { idBagian: number | null, yea
                     r.id
             ) as subquery;`
 
-        // const count = await prisma.permintaan.count({
-        //     where: {
-        //         idBagianCreated: data.idBagian ?? undefined,
-        //         AND: [
-        //             {
-        //                 OR: [
-        //                     {
-        //                         idPermintaanUsersCreatedFK: {
-        //                             nama: {
-        //                                 contains: data.keyword ?? ""
-        //                             }
-        //                         }
-        //                     },
-        //                     {
-        //                         idPermintaanUsersCreatedFK: {
-        //                             nik: {
-        //                                 contains: data.keyword ?? ""
-        //                             }
-        //                         }
-        //                     }
-        //                 ]
-        //             },
-        //             {
-        //                 status: data.status == null ? undefined : data.status
-        //             },
-        //             {
-        //                 used: data.used ?? undefined
-        //             }
-        //         ]
-        //     },
-        // })
-
         const count = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql([queryCount]))
 
         //console.log(count)
@@ -439,7 +352,7 @@ export async function get_request_by_id(id: number): Promise<ResultModel<Request
                 nomorMBR: true,
                 tipeMBR: true,
                 jumlah: true,
-                idPermintaanMBR : {
+                idPermintaanMBR: {
                     select: {
                         status: true,
                     }
@@ -717,6 +630,129 @@ export async function check_product_same_department(idProduct: number, idBagian:
         })
 
         return checkProduct?.idBagian === idBagian
+    } catch (error) {
+        throw error
+    }
+}
+
+//AND - Generate Report Dashboard User
+//ANCHOR - Generate Report Dashboard Admin
+export async function generate_report_dashboard_user(idBagian: number): Promise<ResultModel<{ RBBelumKembali: { count: number | string, namaBagian: string }[], RBDibuat: { count: number | string, namaBagian: string }[] } | null | { data: string }>> {
+    try {
+        const twoMonthsAgo = new Date();
+        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
+        const formattedDate = twoMonthsAgo.toLocaleDateString("id-ID", {
+            month: '2-digit',  // mm
+            year: 'numeric'   // yyyy
+        });
+
+        const bulanTahun = formattedDate.split("/")
+
+        const dateNow = new Date();
+        const yearNow = dateNow.getFullYear()
+
+        //console.log(bulanTahun)
+
+        const query = `SELECT
+                COUNT(CASE 
+                        WHEN n.status = 'ACTIVE'
+                        AND ((MONTH(r.timeCreated) <= ${bulanTahun[0]} AND YEAR(r.timeCreated) <= ${bulanTahun[1]}) OR r.timeCreated IS NULL)
+                        THEN 1 
+                        ELSE NULL 
+                    END) AS count,
+                    b.namaBagian
+                FROM
+                    bagian b
+                    LEFT JOIN permintaan r ON b.id = r.idBagianCreated
+                    LEFT JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                    LEFT JOIN nomormbr n ON d.id = n.idDetailPermintaan
+                WHERE
+                    b.id = ${idBagian}
+                GROUP BY
+                b.namaBagian;`
+
+        const getRequest = await prisma.$queryRaw<{ count: number, namaBagian: string }[]>(Prisma.sql([query]))
+
+        const result = getRequest.map(item => ({
+            count: String(item.count),
+            namaBagian: item.namaBagian
+        }))
+
+        const queryRBDibuat = `SELECT
+                    COUNT(
+                    CASE
+                            WHEN n.id IS NOT NULL 
+                            AND ( YEAR ( r.timeCreated ) = ${yearNow} OR r.timeCreated IS NULL ) THEN
+                                1 ELSE NULL 
+                            END 
+                            ) AS count,
+                            b.namaBagian 
+                        FROM
+                            permintaan r
+                            LEFT JOIN bagian b ON r.idBagianCreated = b.id
+                            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                            JOIN nomormbr n ON d.id = n.idDetailPermintaan
+
+                        WHERE
+                            b.id = ${idBagian}`
+
+        const getRequestRBDibuat = await prisma.$queryRaw<{ count: number, namaBagian: string }[]>(Prisma.sql([queryRBDibuat]))
+        const resultRBDibuat = new Array()
+
+        getRequestRBDibuat.map(item => {
+            resultRBDibuat.push({
+                count: String(item.count),
+                namaBagian: item.namaBagian
+            })
+        })
+
+        return {
+            data: {
+                RBBelumKembali: result,
+                RBDibuat: resultRBDibuat
+            }
+        }
+    } catch (error) {
+        throw error
+    }
+}
+
+//ANCHOR - Generate Report Serah Terima
+export async function generate_report_serah_terima(idBagian: number, startDate: string | null, endDate: string | null): Promise<ResultModel<ILaporanSerahTerimaRB[] | null> | { data: string }> {
+    try {
+        const query = `SELECT
+                p.namaProduk,
+                d.tipeMBR,
+                d.nomorMBR,
+                n.nomorBatch,
+                n.nomorUrut,
+                b.namaBagian
+            FROM
+                permintaan r
+                JOIN detailpermintaanmbr d ON d.idPermintaanMbr = r.id
+                JOIN produk p ON d.idProduk = p.id
+                JOIN nomormbr n ON n.idDetailPermintaan = d.id
+                JOIN bagian b ON r.idBagianCreated = b.id
+                JOIN kategori k ON k.id = p.idKategori
+            WHERE
+                r.idBagianCreated = 135
+                AND n.tanggalKembali BETWEEN '${startDate}' AND '${endDate}'
+                AND n.status IN ('KEMBALI', 'BATAL')
+            ORDER BY
+                k.namaKategori ASC,
+                p.namaProduk ASC,    
+                n.nomorBatch ASC,
+                d.tipeMBR ASC,
+                n.nomorUrut ASC; `
+
+        const getRequest = await prisma.$queryRaw<ILaporanSerahTerimaRB[]>(Prisma.sql([query]))
+
+        if (getRequest.length == 0) {
+            return { data: null }
+        }
+
+        return { data: getRequest }
     } catch (error) {
         throw error
     }

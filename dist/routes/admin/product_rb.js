@@ -61,4 +61,5 @@ router.post("/confirmRBReturnAdmin/:id", [authorization_1.check_is_authorized_ad
 // Generate Laporan
 router.get("/generateReport/", [authorization_1.check_is_authorized_admin], admin_product_rb.generate_report_rb_belum_kembali_perbagian);
 router.get("/generateReportDashboadAdmin/", [authorization_1.check_is_authorized_admin], admin_product_rb.generate_report_dashboard_admin);
+router.get("/generateReportPembuatanRB/", [authorization_1.check_is_authorized_admin], admin_product_rb.generate_report_pembuatan_rb);
 exports.default = router;

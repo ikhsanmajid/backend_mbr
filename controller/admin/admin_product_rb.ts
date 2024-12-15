@@ -17,6 +17,21 @@ interface produk {
     idKategori?: string;
 }
 
+const months: { id: number, nama: string }[] = [
+    { id: 1, nama: 'Januari' },
+    { id: 2, nama: 'Februari' },
+    { id: 3, nama: 'Maret' },
+    { id: 4, nama: 'April' },
+    { id: 5, nama: 'Mei' },
+    { id: 6, nama: 'Juni' },
+    { id: 7, nama: 'Juli' },
+    { id: 8, nama: 'Agustus' },
+    { id: 9, nama: 'September' },
+    { id: 10, nama: 'Oktober' },
+    { id: 11, nama: 'November' },
+    { id: 12, nama: 'Desember' }
+];
+
 //ANCHOR - Konfirmasi RB
 export async function confirm_request(req: Request, res: Response, next: NextFunction) {
     try {
@@ -397,7 +412,7 @@ export async function set_nomor_rb_return(req: Request, res: Response, next: Nex
 
         const data = {
             status: status == undefined ? undefined : Status[status],
-            nomor_batch: nomor_batch == undefined ? undefined : nomor_batch == "" ? null : nomor_batch,
+            nomor_batch: nomor_batch == undefined ? undefined : nomor_batch == "" ? null : nomor_batch.trim(),
             tanggal_kembali: tanggal_kembali == undefined ? undefined : tanggal_kembali == "" ? null : tanggal_kembali
         }
 
@@ -647,7 +662,7 @@ export async function generate_report_rb_belum_kembali_perbagian(req: Request, r
 //ANCHOR - Laporan Dashboard Admin
 export async function generate_report_dashboard_admin(req: Request, res: Response, next: NextFunction) {
     try {
-    
+
 
         const request = await adminProductRb.generate_report_dashboard_admin()
 
@@ -662,5 +677,84 @@ export async function generate_report_dashboard_admin(req: Request, res: Respons
         }
     } catch (error) {
         return next(error)
+    }
+}
+
+//ANCHOR - Laporan Pembuatan RB
+export async function generate_report_pembuatan_rb(req: Request, res: Response, next: NextFunction) {
+    try {
+        const tahun = req.query.tahun == undefined ? null : Number(req.query.tahun);
+
+        if (tahun == null) {
+            return res.status(400).json({
+                message: "Tahun Harus Diisi",
+                status: "failed"
+            });
+        }
+
+        const request = await adminProductRb.generate_report_pembuatan_rb(tahun);
+
+        if ('data' in request!) {
+
+            const result = months.map((month) => {
+                const dataForMonth = [];
+
+                for (const jenisBagian of request.data!) {
+                    const entry = jenisBagian.data.find((item) =>
+                        Number(item.month) === month.id
+                    );
+
+                    dataForMonth.push({
+                        namaJenisBagian: jenisBagian.namaJenisBagian,
+                        total: entry ? String(entry.total) : "-",
+                        late: entry ? String(entry.late) : "-",
+                    });
+                }
+
+                // Cek apakah Farmasi sudah ada di dataForMonth
+                const hasFarmasi = dataForMonth.some(
+                    (item) => item.namaJenisBagian === "Farmasi"
+                );
+
+                // Jika Farmasi tidak ada, tambahkan data default
+                if (!hasFarmasi) {
+                    dataForMonth.push({
+                        namaJenisBagian: "Farmasi",
+                        total: "-",
+                        late: "-",
+                    });
+                }
+
+                // Cek apakah Farmasi sudah ada di dataForMonth
+                const hasFood = dataForMonth.some(
+                    (item) => item.namaJenisBagian === "Food"
+                );
+
+                // Jika Farmasi tidak ada, tambahkan data default
+                if (!hasFood) {
+                    dataForMonth.push({
+                        namaJenisBagian: "Food",
+                        total: "-",
+                        late: "-",
+                    });
+                }
+
+                return {
+                    waktu: `${month.nama} ${tahun}`,
+                    data: dataForMonth,
+                };
+            });
+
+
+            return res.status(200).json({
+                data: result,
+                status: "success",
+            });
+        } else {
+            throw request;
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        return next(error);
     }
 }
