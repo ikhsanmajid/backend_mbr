@@ -1,7 +1,7 @@
 import express, { Router } from "express";
 import * as admin_users from "../../controller/admin/admin_users";
 import * as authentication from "../../middleware/authentication";
-import { check_is_authorized_admin } from "../../middleware/authorization";
+import { check_is_authorized_admin, check_user_has_department, get_user_department, get_user_id } from "../../middleware/authorization";
 
 const authentication_middleware = [authentication.check_access_token]
 
@@ -22,5 +22,8 @@ router.patch("/updateUser/:id", [check_is_authorized_admin], admin_users.update_
 router.patch("/updateUserJabatan", [check_is_authorized_admin], admin_users.update_user_department_employment) // sudah dokumentasi
 router.delete("/deleteUser/:id", [check_is_authorized_admin], admin_users.hard_delete_user)  // sudah dokumentasi
 router.delete("/deleteJabatan/:id", [check_is_authorized_admin], admin_users.delete_user_department_employment)  // sudah dokumentasi
+
+// update password
+router.patch("/updatePassword/:id", [get_user_id], admin_users.update_password) // sudah dokumentasi
 
 export default router;

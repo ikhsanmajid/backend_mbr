@@ -324,3 +324,87 @@ export async function add_user_department_employment(req: Request, res: Response
         next(error)
     }
 }
+
+export async function update_password(req: Request, res: Response, next: NextFunction) {
+    async function hash_password(password: string): Promise<string> {
+        const hashed = await bcrypt.hash(password, 10)
+        return hashed
+    }
+
+    try {
+        //console.log(res.locals)
+        
+        // const postData = {
+        //     id: Number(req.params.id),
+        //     password: req.body?.password == undefined ? undefined : req.body?.password,
+        //     confirm_password: req.body?.confirm_password == undefined ? undefined : req.body?.confirm_password,
+        // }
+
+        const id = Number(req.params.id)
+        const password = req.body?.password
+        const confirm_password = req.body?.confirm_password
+
+        console.log(id, password, confirm_password)
+
+        if (res.locals.idUser != id) {
+            return res.status(400).json({
+                message: "Tidak bisa mengubah password user lain",
+                status: "error"
+            })
+        }
+
+        if (password.length < 8 && confirm_password.length < 8) {
+            return res.status(400).json({
+                message: "Password minimal 8 karakter",
+                status: "error"
+            })
+        }
+
+        if (password !== confirm_password) {
+            return res.status(400).json({
+                message: "Password tidak sama",
+                status: "error"
+            })
+        }
+
+        if (!password.match(".*[0-9].*") && !confirm_password.match(".*[0-9].*")) {
+            return res.status(400).json({
+                message: "Password minimal terdapat 1 angka",
+                status: "error"
+            })
+        }
+
+        // Jika password tidak terdapat simbol
+        if (!password.match(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*") && !confirm_password.match(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*")) {
+            return res.status(400).json({
+                message: "Password minimal terdapat 1 simbol",
+                status: "error"
+            })
+        }
+
+        // Jika password tidak terdapat huruf kapital
+        if (!password.match(".*[A-Z].*") && !confirm_password.match(".*[A-Z].*")) {
+            return res.status(400).json({
+                message: "Password minimal terdapat 1 huruf kapital",
+                status: "error"
+            })
+        }
+
+        const hashedPassword = await hash_password(password)
+
+
+        const user = await adminUsers.update_user_password_model(id, hashedPassword);
+
+        if ("data" in user!) {
+            res.status(200).json({
+                data: user!.data,
+                message: "update password berhasil",
+                status: "success"
+            })
+        } else {
+            throw user
+        }
+    } catch (error) {
+        return next(error)
+    }
+}

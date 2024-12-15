@@ -51,6 +51,21 @@ export async function check_user_has_department(req: Request, res: Response, nex
     return res.status(204)
 }
 
+export async function get_user_id(req: Request, res: Response, next: NextFunction) {
+    const data: { idUser: number | undefined } = { idUser: res.locals.userinfo.id }
+
+    if (data.idUser == undefined) {
+        return res.status(403).json({
+            type: "error",
+            code: "A001",
+            message: "Belum ada ID. Hubungi Admin untuk didaftarkan!"
+        }) 
+    }else{
+        res.locals.idUser = data.idUser
+        return next()
+    }
+}
+
 export async function get_user_department(req: Request, res: Response, next: NextFunction) {
     const data: { idBagian: number | undefined } = { idBagian: res.locals.userinfo.bagian_jabatan[0]?.id_bagian }
 
