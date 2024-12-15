@@ -639,7 +639,7 @@ function generate_report_serah_terima(idBagian, startDate, endDate) {
                 JOIN bagian b ON r.idBagianCreated = b.id
                 JOIN kategori k ON k.id = p.idKategori
             WHERE
-                r.idBagianCreated = 135
+                r.idBagianCreated = ${idBagian}
                 AND n.tanggalKembali BETWEEN '${startDate}' AND '${endDate}'
                 AND n.status IN ('KEMBALI', 'BATAL')
             ORDER BY

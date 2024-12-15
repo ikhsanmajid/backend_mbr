@@ -51,6 +51,7 @@ exports.get_nomor_by_id = get_nomor_by_id;
 exports.get_nomor_request_by_id = get_nomor_request_by_id;
 exports.get_request_by_id = get_request_by_id;
 exports.get_rb_return_by_product = get_rb_return_by_product;
+exports.get_rb_return_by_bagian = get_rb_return_by_bagian;
 exports.get_rb_return_by_product_and_permintaan = get_rb_return_by_product_and_permintaan;
 exports.get_rb_return_by_id_permintaan = get_rb_return_by_id_permintaan;
 exports.set_nomor_rb_return = set_nomor_rb_return;
@@ -368,7 +369,56 @@ function get_rb_return_by_product(req, res, next) {
             const startDate = req.query.startDate == undefined ? null : String(req.query.startDate);
             const endDate = req.query.endDate == undefined ? null : String(req.query.endDate);
             const numberFind = req.query.number == undefined ? null : String(req.query.number);
+            const idBagian = req.query.idBagian == undefined ? null : Number(req.query.idBagian);
+            if (idBagian != null) {
+                const request = yield adminProductRb.get_rb_return_by_bagian(Number(idBagian), status, numberFind, limit, offset, startDate, endDate);
+                if ('data' in request && 'count' in request) {
+                    return res.status(200).json({
+                        data: request.data,
+                        count: Number(request.count),
+                        message: "Detail Permintaan RB",
+                        status: "success",
+                        limit: limit,
+                        offset: offset
+                    });
+                }
+                else {
+                    throw request;
+                }
+            }
             const request = yield adminProductRb.get_rb_return_by_product(Number(id), status, numberFind, limit, offset, startDate, endDate);
+            if ('data' in request && 'count' in request) {
+                //console.log(request.data)
+                return res.status(200).json({
+                    data: request.data,
+                    count: Number(request.count),
+                    message: "Detail Permintaan RB",
+                    status: "success",
+                    limit: limit,
+                    offset: offset
+                });
+            }
+            else {
+                throw request;
+            }
+        }
+        catch (error) {
+            return next(error);
+        }
+    });
+}
+//ANCHOR - Get RB Return By Product
+function get_rb_return_by_bagian(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const status = req.query.status == undefined ? null : String(req.query.status);
+            const limit = req.query.limit == undefined ? null : Number(req.query.limit);
+            const offset = req.query.offset == undefined ? null : Number(req.query.offset);
+            const startDate = req.query.startDate == undefined ? null : String(req.query.startDate);
+            const endDate = req.query.endDate == undefined ? null : String(req.query.endDate);
+            const numberFind = req.query.number == undefined ? null : String(req.query.number);
+            const idBagian = req.query.idBagian == undefined ? null : Number(req.query.idBagian);
+            const request = yield adminProductRb.get_rb_return_by_bagian(Number(idBagian), status, numberFind, limit, offset, startDate, endDate);
             if ('data' in request && 'count' in request) {
                 //console.log(request.data)
                 return res.status(200).json({

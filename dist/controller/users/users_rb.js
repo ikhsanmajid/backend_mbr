@@ -370,6 +370,7 @@ function generate_report_serah_terima(req, res, next) {
                     status: "error"
                 });
             }
+            console.log(convertToUTC(startDate), convertToUTC(endDate));
             const request = yield usersRB.generate_report_serah_terima(idBagian, convertToUTC(startDate), convertToUTC(endDate));
             if ('data' in request) {
                 if (request.data == null) {
