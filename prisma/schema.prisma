@@ -36,7 +36,7 @@ model permintaan {
   reason String?
   used Boolean @default(false)
   idConfirmed Int? @db.UnsignedInt
-  timeConfirmed DateTime?
+  timeConfirmed DateTime? @db.DateTime()
 
   idDetailPermintanMBR detailpermintaanmbr[]
   

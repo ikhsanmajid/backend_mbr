@@ -57,9 +57,24 @@ exports.set_nomor_rb_return = set_nomor_rb_return;
 exports.confirm_rb_return = confirm_rb_return;
 exports.generate_report_rb_belum_kembali_perbagian = generate_report_rb_belum_kembali_perbagian;
 exports.generate_report_dashboard_admin = generate_report_dashboard_admin;
+exports.generate_report_pembuatan_rb = generate_report_pembuatan_rb;
 const adminProductRb = __importStar(require("../../services/admin/admin_product_rb_service"));
 const client_1 = require("@prisma/client");
 const exceljs = __importStar(require("exceljs"));
+const months = [
+    { id: 1, nama: 'Januari' },
+    { id: 2, nama: 'Februari' },
+    { id: 3, nama: 'Maret' },
+    { id: 4, nama: 'April' },
+    { id: 5, nama: 'Mei' },
+    { id: 6, nama: 'Juni' },
+    { id: 7, nama: 'Juli' },
+    { id: 8, nama: 'Agustus' },
+    { id: 9, nama: 'September' },
+    { id: 10, nama: 'Oktober' },
+    { id: 11, nama: 'November' },
+    { id: 12, nama: 'Desember' }
+];
 //ANCHOR - Konfirmasi RB
 function confirm_request(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -431,7 +446,7 @@ function set_nomor_rb_return(req, res, next) {
             const { status, nomor_batch, tanggal_kembali } = req.body;
             const data = {
                 status: status == undefined ? undefined : client_1.Status[status],
-                nomor_batch: nomor_batch == undefined ? undefined : nomor_batch == "" ? null : nomor_batch,
+                nomor_batch: nomor_batch == undefined ? undefined : nomor_batch == "" ? null : nomor_batch.trim(),
                 tanggal_kembali: tanggal_kembali == undefined ? undefined : tanggal_kembali == "" ? null : tanggal_kembali
             };
             const request = yield adminProductRb.set_nomor_rb_return(Number(idNomor), data);
@@ -665,6 +680,69 @@ function generate_report_dashboard_admin(req, res, next) {
             }
         }
         catch (error) {
+            return next(error);
+        }
+    });
+}
+//ANCHOR - Laporan Pembuatan RB
+function generate_report_pembuatan_rb(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const tahun = req.query.tahun == undefined ? null : Number(req.query.tahun);
+            if (tahun == null) {
+                return res.status(400).json({
+                    message: "Tahun Harus Diisi",
+                    status: "failed"
+                });
+            }
+            const request = yield adminProductRb.generate_report_pembuatan_rb(tahun);
+            if ('data' in request) {
+                const result = months.map((month) => {
+                    const dataForMonth = [];
+                    for (const jenisBagian of request.data) {
+                        const entry = jenisBagian.data.find((item) => Number(item.month) === month.id);
+                        dataForMonth.push({
+                            namaJenisBagian: jenisBagian.namaJenisBagian,
+                            total: entry ? String(entry.total) : "-",
+                            late: entry ? String(entry.late) : "-",
+                        });
+                    }
+                    // Cek apakah Farmasi sudah ada di dataForMonth
+                    const hasFarmasi = dataForMonth.some((item) => item.namaJenisBagian === "Farmasi");
+                    // Jika Farmasi tidak ada, tambahkan data default
+                    if (!hasFarmasi) {
+                        dataForMonth.push({
+                            namaJenisBagian: "Farmasi",
+                            total: "-",
+                            late: "-",
+                        });
+                    }
+                    // Cek apakah Farmasi sudah ada di dataForMonth
+                    const hasFood = dataForMonth.some((item) => item.namaJenisBagian === "Food");
+                    // Jika Farmasi tidak ada, tambahkan data default
+                    if (!hasFood) {
+                        dataForMonth.push({
+                            namaJenisBagian: "Food",
+                            total: "-",
+                            late: "-",
+                        });
+                    }
+                    return {
+                        waktu: `${month.nama} ${tahun}`,
+                        data: dataForMonth,
+                    };
+                });
+                return res.status(200).json({
+                    data: result,
+                    status: "success",
+                });
+            }
+            else {
+                throw request;
+            }
+        }
+        catch (error) {
+            console.error("Error:", error);
             return next(error);
         }
     });

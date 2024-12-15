@@ -20,6 +20,8 @@ exports.get_rb_return_by_id_permintaan = get_rb_return_by_id_permintaan;
 exports.set_nomor_rb_return = set_nomor_rb_return;
 exports.check_id_user_not_null = check_id_user_not_null;
 exports.check_product_same_department = check_product_same_department;
+exports.generate_report_dashboard_user = generate_report_dashboard_user;
+exports.generate_report_serah_terima = generate_report_serah_terima;
 const client_1 = require("@prisma/client");
 //SECTION - Product Model Admin
 const prisma = new client_1.PrismaClient();
@@ -53,7 +55,7 @@ function add_request(data) {
                             idPermintaanMbr: parseInt(result.id.toString()),
                             idProduk: parseInt(item.idProduk),
                             group_id: index,
-                            nomorMBR: mbr.no_mbr,
+                            nomorMBR: mbr.no_mbr.trim(),
                             tipeMBR: mbr.tipe_mbr == "PO" ? client_1.TipeMBR["PO"] : client_1.TipeMBR["PS"],
                             jumlah: parseInt(mbr.jumlah)
                         });
@@ -114,9 +116,9 @@ function edit_request(data) {
                             idPermintaanMbr: parseInt(result.id.toString()),
                             idProduk: parseInt(item.idProduk),
                             group_id: index,
-                            nomorMBR: mbr.no_mbr,
+                            nomorMBR: mbr.no_mbr.trim(),
                             tipeMBR: mbr.tipe_mbr == "PO" ? client_1.TipeMBR["PO"] : client_1.TipeMBR["PS"],
-                            jumlah: parseInt(mbr.jumlah)
+                            jumlah: parseInt(mbr.jumlah.trim())
                         });
                     });
                 });
@@ -208,71 +210,6 @@ function get_request_by_bagian(data) {
             r.timeCreated DESC
         LIMIT ${(_b = data.limit) !== null && _b !== void 0 ? _b : ''}
         OFFSET ${(_c = data.offset) !== null && _c !== void 0 ? _c : ''}`;
-            // const getRequest = await prisma.permintaan.findMany({
-            //     where: {
-            //         idBagianCreated: data.idBagian ?? undefined,
-            //         AND: [
-            //             {
-            //                 OR: [
-            //                     {
-            //                         idPermintaanUsersCreatedFK: {
-            //                             nama: {
-            //                                 contains: data.keyword ?? ""
-            //                             }
-            //                         }
-            //                     },
-            //                     {
-            //                         idPermintaanUsersCreatedFK: {
-            //                             nik: {
-            //                                 contains: data.keyword ?? ""
-            //                             }
-            //                         }
-            //                     }
-            //                 ]
-            //             },
-            //             {
-            //                 status: data.status == null ? undefined : data.status
-            //             },
-            //             {
-            //                 used: data.used ?? undefined
-            //             },
-            //             {
-            //             }
-            //         ]
-            //     },
-            //     select: {
-            //         id: true,
-            //         idCreated: true,
-            //         timeCreated: true,
-            //         idBagianCreated: true,
-            //         idBagianCreatedFK: {
-            //             select: {
-            //                 namaBagian: true
-            //             }
-            //         },
-            //         idConfirmed: true,
-            //         idPermintaanUsersConfirmedFK: {
-            //             select: {
-            //                 nama: true
-            //             }
-            //         },
-            //         timeConfirmed: true,
-            //         status: true,
-            //         idPermintaanUsersCreatedFK: {
-            //             select: {
-            //                 nik: true,
-            //                 nama: true
-            //             }
-            //         },
-            //         reason: true,
-            //         used: true
-            //     },
-            //     orderBy: {
-            //         timeCreated: "desc"
-            //     },
-            //     skip: data.offset ?? undefined,
-            //     take: data.limit ?? undefined
-            // })
             const getRequest = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
             const result = Array();
             getRequest.map(item => {
@@ -317,37 +254,6 @@ function get_request_by_bagian(data) {
                 GROUP BY
                     r.id
             ) as subquery;`;
-            // const count = await prisma.permintaan.count({
-            //     where: {
-            //         idBagianCreated: data.idBagian ?? undefined,
-            //         AND: [
-            //             {
-            //                 OR: [
-            //                     {
-            //                         idPermintaanUsersCreatedFK: {
-            //                             nama: {
-            //                                 contains: data.keyword ?? ""
-            //                             }
-            //                         }
-            //                     },
-            //                     {
-            //                         idPermintaanUsersCreatedFK: {
-            //                             nik: {
-            //                                 contains: data.keyword ?? ""
-            //                             }
-            //                         }
-            //                     }
-            //                 ]
-            //             },
-            //             {
-            //                 status: data.status == null ? undefined : data.status
-            //             },
-            //             {
-            //                 used: data.used ?? undefined
-            //             }
-            //         ]
-            //     },
-            // })
             const count = yield prisma.$queryRaw(client_1.Prisma.sql([queryCount]));
             //console.log(count)
             return { data: result, count: Number(count[0].count) };
@@ -634,6 +540,119 @@ function check_product_same_department(idProduct, idBagian) {
                 }
             });
             return (checkProduct === null || checkProduct === void 0 ? void 0 : checkProduct.idBagian) === idBagian;
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+//AND - Generate Report Dashboard User
+//ANCHOR - Generate Report Dashboard Admin
+function generate_report_dashboard_user(idBagian) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const twoMonthsAgo = new Date();
+            twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+            const formattedDate = twoMonthsAgo.toLocaleDateString("id-ID", {
+                month: '2-digit', // mm
+                year: 'numeric' // yyyy
+            });
+            const bulanTahun = formattedDate.split("/");
+            const dateNow = new Date();
+            const yearNow = dateNow.getFullYear();
+            //console.log(bulanTahun)
+            const query = `SELECT
+                COUNT(CASE 
+                        WHEN n.status = 'ACTIVE'
+                        AND ((MONTH(r.timeCreated) <= ${bulanTahun[0]} AND YEAR(r.timeCreated) <= ${bulanTahun[1]}) OR r.timeCreated IS NULL)
+                        THEN 1 
+                        ELSE NULL 
+                    END) AS count,
+                    b.namaBagian
+                FROM
+                    bagian b
+                    LEFT JOIN permintaan r ON b.id = r.idBagianCreated
+                    LEFT JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                    LEFT JOIN nomormbr n ON d.id = n.idDetailPermintaan
+                WHERE
+                    b.id = ${idBagian}
+                GROUP BY
+                b.namaBagian;`;
+            const getRequest = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
+            const result = getRequest.map(item => ({
+                count: String(item.count),
+                namaBagian: item.namaBagian
+            }));
+            const queryRBDibuat = `SELECT
+                    COUNT(
+                    CASE
+                            WHEN n.id IS NOT NULL 
+                            AND ( YEAR ( r.timeCreated ) = ${yearNow} OR r.timeCreated IS NULL ) THEN
+                                1 ELSE NULL 
+                            END 
+                            ) AS count,
+                            b.namaBagian 
+                        FROM
+                            permintaan r
+                            LEFT JOIN bagian b ON r.idBagianCreated = b.id
+                            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+                            JOIN nomormbr n ON d.id = n.idDetailPermintaan
+
+                        WHERE
+                            b.id = ${idBagian}`;
+            const getRequestRBDibuat = yield prisma.$queryRaw(client_1.Prisma.sql([queryRBDibuat]));
+            const resultRBDibuat = new Array();
+            getRequestRBDibuat.map(item => {
+                resultRBDibuat.push({
+                    count: String(item.count),
+                    namaBagian: item.namaBagian
+                });
+            });
+            return {
+                data: {
+                    RBBelumKembali: result,
+                    RBDibuat: resultRBDibuat
+                }
+            };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+//ANCHOR - Generate Report Serah Terima
+function generate_report_serah_terima(idBagian, startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const query = `SELECT
+                p.namaProduk,
+                d.tipeMBR,
+                d.nomorMBR,
+                n.nomorBatch,
+                n.nomorUrut,
+                b.namaBagian
+            FROM
+                permintaan r
+                JOIN detailpermintaanmbr d ON d.idPermintaanMbr = r.id
+                JOIN produk p ON d.idProduk = p.id
+                JOIN nomormbr n ON n.idDetailPermintaan = d.id
+                JOIN bagian b ON r.idBagianCreated = b.id
+                JOIN kategori k ON k.id = p.idKategori
+            WHERE
+                r.idBagianCreated = 135
+                AND n.tanggalKembali BETWEEN '${startDate}' AND '${endDate}'
+                AND n.status IN ('KEMBALI', 'BATAL')
+            ORDER BY
+                k.namaKategori ASC,
+                p.namaProduk ASC,    
+                n.nomorBatch ASC,
+                d.tipeMBR ASC,
+                n.nomorUrut ASC; `;
+            const getRequest = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
+            if (getRequest.length == 0) {
+                return { data: null };
+            }
+            return { data: getRequest };
         }
         catch (error) {
             throw error;

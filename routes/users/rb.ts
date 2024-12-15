@@ -25,4 +25,9 @@ router.get("/getRBReturnByProduct/:id/:idPermintaan", [check_user_has_department
 router.get("/getRBReturnIdPermintaan/:idPermintaan", [check_user_has_department, get_user_department], users.get_rb_return_by_id_permintaan) // sudah dokumentasi
 router.put("/updateNomorRBReturn/:idNomor", [check_user_has_department, get_user_department], users.set_nomor_rb_return) // sudah dokumentasi
 
+
+// Report
+router.get("/generateReportDashboadUser/", [check_user_has_department, get_user_department], users.generate_report_dashboard_user) // sudah dokumentasi
+router.get("/generateReportSerahTerima/", [check_user_has_department, get_user_department], users.generate_report_serah_terima) // sudah dokumentasi
+
 export default router;
