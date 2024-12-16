@@ -185,7 +185,7 @@ export async function edit_request(data: RequestRB): Promise<ResultModel<{ reque
                         group_id: index,
                         nomorMBR: mbr.no_mbr.trim(),
                         tipeMBR: mbr.tipe_mbr == "PO" ? TipeMBR["PO"] : TipeMBR["PS"],
-                        jumlah: parseInt(mbr.jumlah.trim())
+                        jumlah: parseInt(mbr.jumlah)
                     })
                 })
 
@@ -679,23 +679,40 @@ export async function generate_report_dashboard_user(idBagian: number): Promise<
             namaBagian: item.namaBagian
         }))
 
-        const queryRBDibuat = `SELECT
-                    COUNT(
-                    CASE
-                            WHEN n.id IS NOT NULL 
-                            AND ( YEAR ( r.timeCreated ) = ${yearNow} OR r.timeCreated IS NULL ) THEN
-                                1 ELSE NULL 
-                            END 
-                            ) AS count,
-                            b.namaBagian 
-                        FROM
-                            permintaan r
-                            LEFT JOIN bagian b ON r.idBagianCreated = b.id
-                            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
-                            JOIN nomormbr n ON d.id = n.idDetailPermintaan
+        
 
-                        WHERE
-                            b.id = ${idBagian}`
+        // const queryRBDibuat = `SELECT
+        //             COUNT(
+        //             CASE
+        //                     WHEN n.id IS NOT NULL 
+        //                     AND ( YEAR ( r.timeCreated ) = ${yearNow} OR r.timeCreated IS NULL ) THEN
+        //                         1 ELSE NULL 
+        //                     END 
+        //                     ) AS count,
+        //                     b.namaBagian 
+        //                 FROM
+        //                     permintaan r
+        //                     LEFT JOIN bagian b ON r.idBagianCreated = b.id
+        //                     JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
+        //                     JOIN nomormbr n ON d.id = n.idDetailPermintaan
+
+        //                 WHERE
+        //                     b.id = ${idBagian}`
+
+        const queryRBDibuat = `SELECT
+                        b.namaBagian,
+                        (SELECT COUNT(n2.id)
+                        FROM permintaan r2
+                        LEFT JOIN detailpermintaanmbr d2 ON r2.id = d2.idPermintaanMbr
+                        LEFT JOIN nomormbr n2 ON d2.id = n2.idDetailPermintaan
+                        WHERE r2.idBagianCreated = b.id
+                        AND (YEAR(r2.timeCreated) = ${yearNow} OR r2.timeCreated IS NULL)
+                        AND (n2.id IS NOT NULL OR r2.timeCreated IS NULL)
+                        ) AS count
+                    FROM
+                        bagian b
+                    WHERE
+                        b.id = ${idBagian};`
 
         const getRequestRBDibuat = await prisma.$queryRaw<{ count: number, namaBagian: string }[]>(Prisma.sql([queryRBDibuat]))
         const resultRBDibuat = new Array()
