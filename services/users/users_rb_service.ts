@@ -185,7 +185,7 @@ export async function edit_request(data: RequestRB): Promise<ResultModel<{ reque
                         group_id: index,
                         nomorMBR: mbr.no_mbr.trim(),
                         tipeMBR: mbr.tipe_mbr == "PO" ? TipeMBR["PO"] : TipeMBR["PS"],
-                        jumlah: parseInt(mbr.jumlah.trim())
+                        jumlah: parseInt(mbr.jumlah)
                     })
                 })
 
