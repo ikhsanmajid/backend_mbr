@@ -986,8 +986,8 @@ export async function get_rb_return_by_product(id: number, status: string | null
             HAVING 
             1=1
             ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
-            ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
-            ${status == "outstanding" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
+            ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0 ` : ""}
+            ${status == "outstanding" ? `AND COUNT( CASE WHEN ( n.status = 'KEMBALI' OR n.status = 'BATAL' ) AND n.idUserTerima IS NULL THEN 1 END ) > 0` : ""}
             ) as subquery`
 
         const getCount = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql([countQuery]))
@@ -1087,8 +1087,8 @@ export async function get_rb_return_by_bagian(id: number, status: string | null,
             HAVING 
             1=1
             ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
-            ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
-            ${status == "outstanding" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
+            ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0 ` : ""}
+            ${status == "outstanding" ? `AND COUNT( CASE WHEN ( n.status = 'KEMBALI' OR n.status = 'BATAL' ) AND n.idUserTerima IS NULL THEN 1 END ) > 0` : ""}
             ) as subquery`
 
         const getCount = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql([countQuery]))
@@ -1117,6 +1117,100 @@ export async function get_rb_return_by_bagian(id: number, status: string | null,
                     ...data,
                     JumlahOutstanding: String(item.JumlahOutstanding)
                 }
+            }
+
+            result.push(data)
+        })
+
+        //console.log(getCount[0].count.toString())
+
+        return { data: result, count: getCount[0].count }
+    } catch (error) {
+        throw error
+    }
+}
+
+//ANCHOR - Get Permintaan RB Return Berdasarkan Produk
+export async function get_rb_return_by_status_outstanding(numberFind: string | null, limit: number | null, offset: number | null, startDate: string | null, endDate: string | null): Promise<ResultModel<ReturnRBResult[] | null> | { data: string }> {
+    try {
+        let query = `SELECT
+            d.idPermintaanMbr AS id,
+            d.idProduk,
+            p.namaProduk,
+            DAY(r.timeCreated) AS tanggal,
+            MONTH(r.timeCreated) AS bulan,
+            YEAR(r.timeCreated) AS tahun,
+            MIN(n.nomorUrut) AS nomorAwal,
+            MAX(n.nomorUrut) AS nomorAkhir,
+            COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) AS RBBelumKembali,
+            COUNT( CASE WHEN ( n.status = 'KEMBALI' OR n.status = 'BATAL' ) AND n.idUserTerima IS NULL THEN 1 END ) AS JumlahOutstanding
+        FROM
+            nomormbr n
+        JOIN 
+            detailpermintaanmbr d ON d.id = n.idDetailPermintaan
+        JOIN
+            produk p ON p.id = d.idProduk
+        JOIN
+            permintaan r ON r.id = d.idPermintaanMbr
+        WHERE
+            1=1
+            ${(startDate !== null && endDate !== null) ? ` AND (
+		    ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		    AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+	        ) ` : ""}
+        GROUP BY
+            p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr          
+        HAVING
+            1=1 
+            AND JumlahOutstanding > 0 
+            ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
+            ${(limit != null && offset != null) ? `LIMIT ${limit} OFFSET ${offset}` : ""}`
+
+        const getRequest = await prisma.$queryRaw<ReturnRBQuery[]>(Prisma.sql([query]))
+
+        const countQuery = `SELECT COUNT(*) as "count" FROM
+            (SELECT
+                d.idPermintaanMbr
+            FROM
+                nomormbr n
+            JOIN 
+                detailpermintaanmbr d ON d.id = n.idDetailPermintaan
+            JOIN
+                permintaan r ON r.id = d.idPermintaanMbr
+            WHERE
+                1=1
+                 ${(startDate !== null && endDate !== null) ? ` AND (
+                ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+                AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+                ) ` : ""}
+            GROUP BY
+                d.idPermintaanMbr
+            HAVING 
+                1=1
+                ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
+                AND COUNT( CASE WHEN ( n.status = 'KEMBALI' OR n.status = 'BATAL' ) AND n.idUserTerima IS NULL THEN 1 END ) > 0
+                ) as subquery`
+
+        const getCount = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql([countQuery]))
+
+
+        if (getRequest == null) {
+            return { data: "Data Permintaan tidak ditemukan" }
+        }
+
+        const result: ReturnRBResult[] = Array()
+
+        getRequest.map(item => {
+            let data: ReturnRBResult = {
+                id: String(item.id),
+                idProduk: String(item.idProduk),
+                namaProduk: item.namaProduk,
+                tanggalBulan: `${item.tanggal}-${item.bulan} `,
+                tahun: String(item.tahun),
+                nomorAwal: item.nomorAwal,
+                nomorAkhir: item.nomorAkhir,
+                RBBelumKembali: String(item.RBBelumKembali),
+                JumlahOutstanding: String(item.JumlahOutstanding)
             }
 
             result.push(data)

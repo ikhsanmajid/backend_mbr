@@ -23,6 +23,7 @@ router.post("/confirmPermintaan/:id", [check_is_authorized_admin], admin_product
 // Pengembalian RB
 router.get("/getRBReturnAdminByProduct/:id", [check_is_authorized_admin],  admin_product_rb.get_rb_return_by_product) // sudah dokumentasi
 router.get("/getRBReturnAdminByBagian/", [check_is_authorized_admin],  admin_product_rb.get_rb_return_by_bagian) // sudah dokumentasi
+router.get("/getRBReturnAdminByStatusOutstanding/", [check_is_authorized_admin],  admin_product_rb.get_rb_return_by_status_outstanding) // sudah dokumentasi
 router.get("/getRBReturnAdminByProduct/:id/:idPermintaan", [check_is_authorized_admin],  admin_product_rb.get_rb_return_by_product_and_permintaan) // sudah dokumentasi
 router.get("/getRBReturnAdminIdPermintaan/:idPermintaan", [check_is_authorized_admin],  admin_product_rb.get_rb_return_by_id_permintaan) // sudah dokumentasi
 router.put("/updateNomorRBReturnAdmin/:idNomor", [check_is_authorized_admin],  admin_product_rb.set_nomor_rb_return) // sudah dokumentasi

@@ -8,7 +8,7 @@ import BadRequestError from "../helper/errors/BadRequestError";
 const jwt = jsonwebtoken
 
 async function generate_access_token(userinfo: any) {
-    const access_token = await jwt.sign(userinfo, process.env.TOKEN_SECRET!, { expiresIn: '2h' })
+    const access_token = await jwt.sign(userinfo, process.env.TOKEN_SECRET!, { expiresIn: '3h' })
     //console.log(access_token)
     return access_token
 }
@@ -103,7 +103,7 @@ export const check_access_token = (req: Request, res: Response, next: NextFuncti
                 let message: string;
 
                 if (err.message == "jwt expired") {
-                    throw new BadRequestError({ message: "Token Expired", context: { code: "A002", message: "Token Kadaluarsa" } })
+                    throw new BadRequestError({ statusCode: 401, message: "Token Expired", context: { code: "A002", message: "Token Kadaluarsa" } })
                 } else {
                     throw new BadRequestError({ message: "Another Issue", context: { code: "A999", message: "Unexpected Token Issue" } })
                 }

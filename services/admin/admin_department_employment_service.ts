@@ -68,11 +68,13 @@ export async function find_all_department_employment_model(data: any): Promise<R
                 id: true,
                 idBagianFK: {
                     select: {
+                        id: true,
                         namaBagian: true,
                     }
                 },
                 idJabatanFK: {
                     select: {
+                        id: true,
                         namaJabatan: true,
                     }
                 }
@@ -320,8 +322,8 @@ export async function find_id_department_employment_model(data: any): Promise<Re
         const departmentEmployment = await prisma.bagianonjabatan.findFirst({
             where: {
                 AND: {
-                    idBagian: parseInt(data.newBagian),
-                    idJabatan: parseInt(data.newJabatan)
+                    idBagian: parseInt(data.idBagian),
+                    idJabatan: parseInt(data.idJabatan)
                 }
             },
             select: {
@@ -331,7 +333,7 @@ export async function find_id_department_employment_model(data: any): Promise<Re
         })
 
         if (departmentEmployment == null) {
-            return null
+            return { data: null }
         }
 
         return { data: departmentEmployment }

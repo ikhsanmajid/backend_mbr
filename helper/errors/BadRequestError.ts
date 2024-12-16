@@ -43,3 +43,4 @@ export default class BadRequestError extends CustomError {
         })
     }
 }
+

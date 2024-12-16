@@ -338,22 +338,7 @@ export async function get_rb_return_by_product(req: Request, res: Response, next
         const numberFind = req.query.number == undefined ? null : String(req.query.number)
         const idBagian = req.query.idBagian == undefined ? null : Number(req.query.idBagian)
 
-        if (idBagian != null) {
-            const request = await adminProductRb.get_rb_return_by_bagian(Number(idBagian), status, numberFind, limit, offset, startDate, endDate)
 
-            if ('data' in request! && 'count' in request!) {
-                return res.status(200).json({
-                    data: request.data,
-                    count: Number(request.count),
-                    message: "Detail Permintaan RB",
-                    status: "success",
-                    limit: limit,
-                    offset: offset
-                });
-            } else {
-                throw request
-            }
-        }
 
         const request = await adminProductRb.get_rb_return_by_product(Number(id), status, numberFind, limit, offset, startDate, endDate)
 
@@ -387,6 +372,35 @@ export async function get_rb_return_by_bagian(req: Request, res: Response, next:
         const idBagian = req.query.idBagian == undefined ? null : Number(req.query.idBagian)
 
         const request = await adminProductRb.get_rb_return_by_bagian(Number(idBagian), status, numberFind, limit, offset, startDate, endDate)
+
+        if ('data' in request! && 'count' in request!) {
+            //console.log(request.data)
+            return res.status(200).json({
+                data: request.data,
+                count: Number(request.count),
+                message: "Detail Permintaan RB",
+                status: "success",
+                limit: limit,
+                offset: offset
+            });
+        } else {
+            throw request
+        }
+    } catch (error) {
+        return next(error)
+    }
+}
+
+//ANCHOR - Get RB Return By Status Outstanding
+export async function get_rb_return_by_status_outstanding(req: Request, res: Response, next: NextFunction) {
+    try {
+        const limit = req.query.limit == undefined ? null : Number(req.query.limit)
+        const offset = req.query.offset == undefined ? null : Number(req.query.offset)
+        const startDate = req.query.startDate == undefined ? null : String(req.query.startDate)
+        const endDate = req.query.endDate == undefined ? null : String(req.query.endDate)
+        const numberFind = req.query.number == undefined ? null : String(req.query.number)
+
+        const request = await adminProductRb.get_rb_return_by_status_outstanding(numberFind, limit, offset, startDate, endDate)
 
         if ('data' in request! && 'count' in request!) {
             //console.log(request.data)
