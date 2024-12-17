@@ -72,7 +72,7 @@ function add_user(req, res, next) {
                 nama: req.body.nama,
                 password: yield hash_password(req.body.password),
                 isAdmin: false,
-                isActive: true,
+                isActive: false,
                 dateCreated: new Date().toISOString()
             };
             const user = yield adminUsers.add_user_model(postData);

@@ -493,6 +493,7 @@ function set_nomor_rb_return(id, data) {
                     id: id
                 },
                 data: {
+                    idUserKembali: data.idUser,
                     nomorBatch: data.nomor_batch,
                     status: data.status,
                     tanggalKembali: data.tanggal_kembali
@@ -634,7 +635,7 @@ function generate_report_dashboard_user(idBagian) {
     });
 }
 //ANCHOR - Generate Report Serah Terima
-function generate_report_serah_terima(idBagian, startDate, endDate) {
+function generate_report_serah_terima(idBagian, idUser, startDate, endDate) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const query = `SELECT
@@ -653,6 +654,7 @@ function generate_report_serah_terima(idBagian, startDate, endDate) {
                 JOIN kategori k ON k.id = p.idKategori
             WHERE
                 r.idBagianCreated = ${idBagian}
+                AND n.idUserKembali = ${idUser}
                 AND n.tanggalKembali BETWEEN '${startDate}' AND '${endDate}'
                 AND n.status IN ('KEMBALI', 'BATAL')
             ORDER BY

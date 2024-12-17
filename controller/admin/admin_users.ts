@@ -17,7 +17,7 @@ export async function add_user(req: Request, res: Response, next: NextFunction) 
             nama: req.body.nama,
             password: await hash_password(req.body.password),
             isAdmin: false,
-            isActive: true,
+            isActive: false,
             dateCreated: new Date().toISOString()
         }
 

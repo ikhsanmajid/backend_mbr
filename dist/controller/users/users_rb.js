@@ -305,7 +305,8 @@ function set_nomor_rb_return(req, res, next) {
             const data = {
                 status: status == undefined ? undefined : client_1.Status[status],
                 nomor_batch: nomor_batch == undefined ? undefined : nomor_batch == "" ? null : nomor_batch.trim(),
-                tanggal_kembali: tanggal_kembali == undefined ? undefined : tanggal_kembali == "" ? null : tanggal_kembali
+                tanggal_kembali: tanggal_kembali == undefined ? undefined : tanggal_kembali == "" ? null : tanggal_kembali,
+                idUser: Number(res.locals.idUser)
             };
             const checkIdUserNotNull = yield usersRB.check_id_user_not_null(Number(idNomor));
             if (checkIdUserNotNull == true) {
@@ -360,6 +361,7 @@ function generate_report_serah_terima(req, res, next) {
             const idBagian = Number(res.locals.idBagian);
             const startDate = req.query.startDate == undefined ? null : String(req.query.startDate);
             const endDate = req.query.endDate == undefined ? null : String(req.query.endDate);
+            const idUser = Number(res.locals.idUser);
             function convertToUTC(datetimeString) {
                 const localDate = new Date(`${datetimeString}:00`);
                 return localDate.toISOString().replace('T', ' ').substring(0, 16);
@@ -371,7 +373,7 @@ function generate_report_serah_terima(req, res, next) {
                 });
             }
             console.log(convertToUTC(startDate), convertToUTC(endDate));
-            const request = yield usersRB.generate_report_serah_terima(idBagian, convertToUTC(startDate), convertToUTC(endDate));
+            const request = yield usersRB.generate_report_serah_terima(idBagian, idUser, convertToUTC(startDate), convertToUTC(endDate));
             if ('data' in request) {
                 if (request.data == null) {
                     return res.status(200).json({

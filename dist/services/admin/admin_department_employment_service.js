@@ -79,11 +79,13 @@ function find_all_department_employment_model(data) {
                     id: true,
                     idBagianFK: {
                         select: {
+                            id: true,
                             namaBagian: true,
                         }
                     },
                     idJabatanFK: {
                         select: {
+                            id: true,
                             namaJabatan: true,
                         }
                     }
@@ -321,8 +323,8 @@ function find_id_department_employment_model(data) {
             const departmentEmployment = yield prisma.bagianonjabatan.findFirst({
                 where: {
                     AND: {
-                        idBagian: parseInt(data.newBagian),
-                        idJabatan: parseInt(data.newJabatan)
+                        idBagian: parseInt(data.idBagian),
+                        idJabatan: parseInt(data.idJabatan)
                     }
                 },
                 select: {
@@ -330,7 +332,7 @@ function find_id_department_employment_model(data) {
                 },
             });
             if (departmentEmployment == null) {
-                return null;
+                return { data: null };
             }
             return { data: departmentEmployment };
         }
