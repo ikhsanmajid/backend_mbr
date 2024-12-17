@@ -24,6 +24,7 @@ exports.get_permintaan_by_id = get_permintaan_by_id;
 exports.get_nomor_permintaan_by_id = get_nomor_permintaan_by_id;
 exports.get_rb_return_by_product = get_rb_return_by_product;
 exports.get_rb_return_by_bagian = get_rb_return_by_bagian;
+exports.get_rb_return_by_status_outstanding = get_rb_return_by_status_outstanding;
 exports.get_rb_return_by_product_and_permintaan = get_rb_return_by_product_and_permintaan;
 exports.get_rb_return_by_id_permintaan = get_rb_return_by_id_permintaan;
 exports.set_nomor_rb_return = set_nomor_rb_return;
@@ -797,8 +798,8 @@ function get_rb_return_by_product(id, status, numberFind, limit, offset, startDa
             HAVING 
             1=1
             ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
-            ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
-            ${status == "outstanding" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
+            ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0 ` : ""}
+            ${status == "outstanding" ? `AND COUNT( CASE WHEN ( n.status = 'KEMBALI' OR n.status = 'BATAL' ) AND n.idUserTerima IS NULL THEN 1 END ) > 0` : ""}
             ) as subquery`;
             const getCount = yield prisma.$queryRaw(client_1.Prisma.sql([countQuery]));
             if (getRequest == null) {
@@ -886,8 +887,8 @@ function get_rb_return_by_bagian(id, status, numberFind, limit, offset, startDat
             HAVING 
             1=1
             ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
-            ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
-            ${status == "outstanding" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
+            ${status == "belum" ? `AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0 ` : ""}
+            ${status == "outstanding" ? `AND COUNT( CASE WHEN ( n.status = 'KEMBALI' OR n.status = 'BATAL' ) AND n.idUserTerima IS NULL THEN 1 END ) > 0` : ""}
             ) as subquery`;
             const getCount = yield prisma.$queryRaw(client_1.Prisma.sql([countQuery]));
             if (getRequest == null) {
@@ -908,6 +909,92 @@ function get_rb_return_by_bagian(id, status, numberFind, limit, offset, startDat
                 if (status === "outstanding") {
                     data = Object.assign(Object.assign({}, data), { JumlahOutstanding: String(item.JumlahOutstanding) });
                 }
+                result.push(data);
+            });
+            //console.log(getCount[0].count.toString())
+            return { data: result, count: getCount[0].count };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+//ANCHOR - Get Permintaan RB Return Berdasarkan Produk
+function get_rb_return_by_status_outstanding(numberFind, limit, offset, startDate, endDate) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            let query = `SELECT
+            d.idPermintaanMbr AS id,
+            d.idProduk,
+            p.namaProduk,
+            DAY(r.timeCreated) AS tanggal,
+            MONTH(r.timeCreated) AS bulan,
+            YEAR(r.timeCreated) AS tahun,
+            MIN(n.nomorUrut) AS nomorAwal,
+            MAX(n.nomorUrut) AS nomorAkhir,
+            COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) AS RBBelumKembali,
+            COUNT( CASE WHEN ( n.status = 'KEMBALI' OR n.status = 'BATAL' ) AND n.idUserTerima IS NULL THEN 1 END ) AS JumlahOutstanding
+        FROM
+            nomormbr n
+        JOIN 
+            detailpermintaanmbr d ON d.id = n.idDetailPermintaan
+        JOIN
+            produk p ON p.id = d.idProduk
+        JOIN
+            permintaan r ON r.id = d.idPermintaanMbr
+        WHERE
+            1=1
+            ${(startDate !== null && endDate !== null) ? ` AND (
+		    ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+		    AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+	        ) ` : ""}
+        GROUP BY
+            p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr          
+        HAVING
+            1=1 
+            AND JumlahOutstanding > 0 
+            ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
+            ${(limit != null && offset != null) ? `LIMIT ${limit} OFFSET ${offset}` : ""}`;
+            const getRequest = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
+            const countQuery = `SELECT COUNT(*) as "count" FROM
+            (SELECT
+                d.idPermintaanMbr
+            FROM
+                nomormbr n
+            JOIN 
+                detailpermintaanmbr d ON d.id = n.idDetailPermintaan
+            JOIN
+                permintaan r ON r.id = d.idPermintaanMbr
+            WHERE
+                1=1
+                 ${(startDate !== null && endDate !== null) ? ` AND (
+                ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
+                AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
+                ) ` : ""}
+            GROUP BY
+                d.idPermintaanMbr
+            HAVING 
+                1=1
+                ${(numberFind !== null) ? `AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
+                AND COUNT( CASE WHEN ( n.status = 'KEMBALI' OR n.status = 'BATAL' ) AND n.idUserTerima IS NULL THEN 1 END ) > 0
+                ) as subquery`;
+            const getCount = yield prisma.$queryRaw(client_1.Prisma.sql([countQuery]));
+            if (getRequest == null) {
+                return { data: "Data Permintaan tidak ditemukan" };
+            }
+            const result = Array();
+            getRequest.map(item => {
+                let data = {
+                    id: String(item.id),
+                    idProduk: String(item.idProduk),
+                    namaProduk: item.namaProduk,
+                    tanggalBulan: `${item.tanggal}-${item.bulan} `,
+                    tahun: String(item.tahun),
+                    nomorAwal: item.nomorAwal,
+                    nomorAkhir: item.nomorAkhir,
+                    RBBelumKembali: String(item.RBBelumKembali),
+                    JumlahOutstanding: String(item.JumlahOutstanding)
+                };
                 result.push(data);
             });
             //console.log(getCount[0].count.toString())

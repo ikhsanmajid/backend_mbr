@@ -269,12 +269,14 @@ export async function get_rb_return_by_id_permintaan(req: Request, res: Response
 export async function set_nomor_rb_return(req: Request, res: Response, next: NextFunction) {
     try {
         const idNomor = req.params.idNomor
+        
         const { status, nomor_batch, tanggal_kembali }: { status: Status | undefined, nomor_batch: string | null | undefined, tanggal_kembali: string | null | undefined } = req.body
 
         const data = {
             status: status == undefined ? undefined : Status[status],
             nomor_batch: nomor_batch == undefined ? undefined : nomor_batch == "" ? null : nomor_batch.trim(),
-            tanggal_kembali: tanggal_kembali == undefined ? undefined : tanggal_kembali == "" ? null : tanggal_kembali
+            tanggal_kembali: tanggal_kembali == undefined ? undefined : tanggal_kembali == "" ? null : tanggal_kembali,
+            idUser: Number(res.locals.idUser)
         }
 
         const checkIdUserNotNull = await usersRB.check_id_user_not_null(Number(idNomor))
@@ -330,6 +332,7 @@ export async function generate_report_serah_terima(req: Request, res: Response, 
         const idBagian = Number(res.locals.idBagian)
         const startDate = req.query.startDate == undefined ? null : String(req.query.startDate)
         const endDate = req.query.endDate == undefined ? null : String(req.query.endDate)
+        const idUser = Number(res.locals.idUser)
 
         function convertToUTC(datetimeString: string) {
             const localDate = new Date(`${datetimeString}:00`);
@@ -345,7 +348,7 @@ export async function generate_report_serah_terima(req: Request, res: Response, 
 
         console.log(convertToUTC(startDate), convertToUTC(endDate))
 
-        const request = await usersRB.generate_report_serah_terima(idBagian, convertToUTC(startDate), convertToUTC(endDate))
+        const request = await usersRB.generate_report_serah_terima(idBagian, idUser, convertToUTC(startDate), convertToUTC(endDate))
 
         if ('data' in request!) {
             if (request.data == null) {

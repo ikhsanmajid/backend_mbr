@@ -52,8 +52,8 @@ router.get("/listDetailRequestRB/:id", [authorization_1.check_user_has_departmen
 router.get("/getRBReturnByProduct/:id", [authorization_1.check_user_has_department, authorization_1.get_user_department, authorization_1.check_user_same_department], users.get_rb_return_by_product); // sudah dokumentasi
 router.get("/getRBReturnByProduct/:id/:idPermintaan", [authorization_1.check_user_has_department, authorization_1.get_user_department, authorization_1.check_user_same_department], users.get_rb_return_by_product_and_permintaan); // sudah dokumentasi
 router.get("/getRBReturnIdPermintaan/:idPermintaan", [authorization_1.check_user_has_department, authorization_1.get_user_department], users.get_rb_return_by_id_permintaan); // sudah dokumentasi
-router.put("/updateNomorRBReturn/:idNomor", [authorization_1.check_user_has_department, authorization_1.get_user_department], users.set_nomor_rb_return); // sudah dokumentasi
+router.put("/updateNomorRBReturn/:idNomor", [authorization_1.check_user_has_department, authorization_1.get_user_department, authorization_1.get_user_id], users.set_nomor_rb_return); // sudah dokumentasi
 // Report
 router.get("/generateReportDashboadUser/", [authorization_1.check_user_has_department, authorization_1.get_user_department], users.generate_report_dashboard_user); // sudah dokumentasi
-router.get("/generateReportSerahTerima/", [authorization_1.check_user_has_department, authorization_1.get_user_department], users.generate_report_serah_terima); // sudah dokumentasi
+router.get("/generateReportSerahTerima/", [authorization_1.check_user_has_department, authorization_1.get_user_department, authorization_1.get_user_id], users.generate_report_serah_terima); // sudah dokumentasi
 exports.default = router;

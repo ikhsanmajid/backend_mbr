@@ -21,7 +21,8 @@ model users {
   idPermintaanConfirmed permintaan[] @relation("idPermintaanUsersConfirmedFK")
 
   jabatanBagian usersonbagianonjabatan[]
-  idUserTerima nomormbr[]
+  idUserTerima nomormbr[] @relation("idUserTerima")
+  idUserKembali nomormbr[] @relation("idUserKembali")
 
   @@id([id, email, nik])
 }
@@ -141,12 +142,14 @@ model nomormbr {
   idDetailPermintaan Int @db.UnsignedInt
   nomorUrut String @db.VarChar(6)
   status Status @default(ACTIVE)
+  idUserKembali Int? @db.UnsignedInt
   tahun Int @db.Year
   tanggalKembali DateTime? @db.DateTime()
   idUserTerima Int? @db.UnsignedInt
   nomorBatch String? @db.VarChar(10)
-  
-  idUserTerimaFK users? @relation(fields: [idUserTerima], references: [id])
+
+  idUserKembaliMBRFK users? @relation("idUserKembali", fields: [idUserKembali], references: [id])
+  idUserTerimaFK users? @relation("idUserTerima", fields: [idUserTerima], references: [id])
   idDetailPermintaanFk detailpermintaanmbr? @relation(fields: [idDetailPermintaan], references: [id], onDelete: Cascade)
 
   @@unique([idDetailPermintaan, nomorUrut, tahun])

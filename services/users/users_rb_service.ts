@@ -576,13 +576,14 @@ export async function get_rb_return_by_id_permintaan(idPermintaan: number, limit
 }
 
 //ANCHOR - Update Nomor RB Return
-export async function set_nomor_rb_return(id: number, data: { status: Status | undefined, nomor_batch: undefined | null | string, tanggal_kembali: string | null | undefined }): Promise<ResultModel<boolean> | { data: string }> {
+export async function set_nomor_rb_return(id: number, data: { idUser: number, status: Status | undefined, nomor_batch: undefined | null | string, tanggal_kembali: string | null | undefined }): Promise<ResultModel<boolean> | { data: string }> {
     try {
         const updateRequest = await prisma.nomormbr.update({
             where: {
                 id: id
             },
             data: {
+                idUserKembali: data.idUser,
                 nomorBatch: data.nomor_batch,
                 status: data.status,
                 tanggalKembali: data.tanggal_kembali
@@ -736,7 +737,7 @@ export async function generate_report_dashboard_user(idBagian: number): Promise<
 }
 
 //ANCHOR - Generate Report Serah Terima
-export async function generate_report_serah_terima(idBagian: number, startDate: string | null, endDate: string | null): Promise<ResultModel<ILaporanSerahTerimaRB[] | null> | { data: string }> {
+export async function generate_report_serah_terima(idBagian: number, idUser: number, startDate: string | null, endDate: string | null): Promise<ResultModel<ILaporanSerahTerimaRB[] | null> | { data: string }> {
     try {
         const query = `SELECT
                 p.namaProduk,
@@ -754,6 +755,7 @@ export async function generate_report_serah_terima(idBagian: number, startDate: 
                 JOIN kategori k ON k.id = p.idKategori
             WHERE
                 r.idBagianCreated = ${idBagian}
+                AND n.idUserKembali = ${idUser}
                 AND n.tanggalKembali BETWEEN '${startDate}' AND '${endDate}'
                 AND n.status IN ('KEMBALI', 'BATAL')
             ORDER BY
