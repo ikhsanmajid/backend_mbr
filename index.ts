@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 
 const corsOpttion: CorsOptions = {
     credentials: true,
-    origin: ["http://localhost:3000", "http://localhost:8080", "https://mbr.ikhsanmajid.my.id", "http://10.42.0.1:3000", "http://10.42.0.243:3000"]
+    origin: ["http://localhost:3000", "https://frontend-mbr.vercel.app", "http://localhost:8080", "https://mbr.ikhsanmajid.my.id", "http://10.42.0.1:3000", "http://10.42.0.243:3000"]
 }
 
 const app: Express = express()
