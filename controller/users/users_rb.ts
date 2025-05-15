@@ -3,6 +3,10 @@ import * as usersRB from "../../services/users/users_rb_service";
 import { Konfirmasi, Status } from "@prisma/client";
 import { ILaporanSerahTerimaRB } from "../../services/users/users_rb_service";
 import exceljs from "exceljs";
+import { MailOptions } from "nodemailer/lib/sendmail-transport";
+import { get_admin_mail, get_dco_mail } from "../../services/admin/admin_users_service";
+import { transporter } from "../../helper/mailer";
+import { error } from "console";
 
 interface RequestRB {
     id?: number | string;
@@ -14,6 +18,7 @@ interface RequestRB {
     timeConfirmed?: string;
     data?: Array<{
         idProduk: string;
+        namaProduk?: string;
         mbr: [{
             group_id: number;
             no_mbr: string;
@@ -36,7 +41,68 @@ export async function add_request(req: Request, res: Response, next: NextFunctio
         const request = await usersRB.add_request(postData)
 
         if ('data' in request!) {
-            res.status(200).json({
+            const toAdminEmail = await get_admin_mail()
+            const ccDcoEmail = await get_dco_mail()
+            if ('data' in toAdminEmail! && 'data' in ccDcoEmail! && toAdminEmail!.data!.length > 0) {
+                let index: number = 1;
+                const daftarPermintaan = postData.data?.map((item) => {
+                    return item.mbr.map(mbr => `
+                        <tr>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${index++}</td>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${item.namaProduk}</td>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${mbr.no_mbr}</td>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${mbr.tipe_mbr}</td>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${mbr.jumlah}</td>
+                        </tr>
+                    `).join(""); // Gabungkan hasil dari `map()`
+                }).join("");
+                const toMailList = toAdminEmail.data!.map(item => item.email).join(', ')
+                const ccMailList = ccDcoEmail!.data!.map(item => item.email).join(', ')
+                const mailOptions: MailOptions = {
+                    sender: process.env.USER_MAIL! as string,
+                    to: toMailList,
+                    cc: ccMailList,
+                    subject: `[No Reply] Konfirmasi Permintaan Nomor MBR - ${request.data?.requestRB.namaBagianCreated} - ${request.data?.requestRB.namaCreated}`,
+                    html: `
+                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">Dengan Hormat,</p>
+
+                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">
+                        Mohon dapat melakukan konfirmasi permintaan nomor MBR yang dibuat oleh: 
+                        <span style="color: black; font-weight: bold;">${request.data?.requestRB.namaBagianCreated}&#8203; - ${request.data?.requestRB.namaCreated}&#8203;</span>
+                    </p>
+                    <p>ID transaksi: ${request.data?.requestRB.id}</p>
+                    <table style="border-collapse: collapse; width: 100%; margin-top: 10px; border: 1px solid black;">
+                        <thead>
+                            <tr>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">No.</th>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">Nama Produk</th>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">Nomor MBR</th>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">Tipe MBR</th>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${daftarPermintaan}
+                        </tbody>
+                    </table>
+
+                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 10px 0 0 0;">Terima kasih.</p>
+                    <br/>
+                    <br/>
+                    <p style="color: gray; font-size: 8px; line-height: 1.5; margin: 10px 0 0 0;">
+                        <i>Email ini dikirim pada: <span style="font-weight: bold;">${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}</span></i>
+                    </p>
+                    `
+                }
+
+                transporter.sendMail(mailOptions, (error, info) => {
+                    if (error) {
+                        console.log(error)
+                    }
+                })
+            }
+
+            return res.status(200).json({
                 data: request.data,
                 message: "Tambah Permintaan RB Berhasil",
                 status: "success"
@@ -63,7 +129,70 @@ export async function edit_request(req: Request, res: Response, next: NextFuncti
         const request = await usersRB.edit_request(postData)
 
         if ('data' in request!) {
-            res.status(200).json({
+            const toAdminEmail = await get_admin_mail()
+            const ccDcoEmail = await get_dco_mail()
+            if ('data' in toAdminEmail! && 'data' in ccDcoEmail! && toAdminEmail!.data!.length > 0) {
+                let index: number = 1;
+                const daftarPermintaan = postData.data?.map((item) => {
+                    return item.mbr.map(mbr => `
+                        <tr>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${index++}</td>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${item.namaProduk}</td>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${mbr.no_mbr}</td>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${mbr.tipe_mbr}</td>
+                            <td style="border: 1px solid black; padding: 8px; text-align: left; color: black;">${mbr.jumlah}</td>
+                        </tr>
+                    `).join(""); // Gabungkan hasil dari `map()`
+                }).join("");
+                const toMailList = toAdminEmail.data!.map(item => item.email).join(', ')
+                const ccMailList = ccDcoEmail!.data!.map(item => item.email).join(', ')
+                const mailOptions: MailOptions = {
+                    sender: process.env.USER_MAIL! as string,
+                    to: toMailList,
+                    cc: ccMailList,
+                    subject: `[No Reply] Konfirmasi Pengajuan Ulang Permintaan Nomor MBR - ${request.data?.requestRB.namaBagianCreated} - ${request.data?.requestRB.namaCreated}`,
+                    html: `
+                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">Dengan Hormat,</p>
+
+                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">
+                        Mohon dapat melakukan konfirmasi permintaan nomor MBR yang dibuat ulang oleh: 
+                        <span style="color: black; font-weight: bold;">${request.data?.requestRB.namaBagianCreated}&#8203; - ${request.data?.requestRB.namaCreated}&#8203;</span>
+                    </p>
+                    <p>ID transaksi: ${request.data?.requestRB.id}</p>
+                    <table style="border-collapse: collapse; width: 100%; margin-top: 10px; border: 1px solid black;">
+                        <thead>
+                            <tr>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">No.</th>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">Nama Produk</th>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">Nomor MBR</th>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">Tipe MBR</th>
+                                <th style="border: 1px solid black; padding: 8px; text-align: left; background-color: #f2f2f2; color: black;">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${daftarPermintaan}
+                        </tbody>
+                    </table>
+
+                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 10px 0 0 0;">Terima kasih.</p>
+                    <br/>
+                    <br/>
+                    <p style="color: gray; font-size: 8px; line-height: 1.5; margin: 10px 0 0 0;">
+                        <i>Email ini dikirim pada: <span style="font-weight: bold;">${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}</span></i>
+                    </p>
+                    `
+                }
+
+                transporter.sendMail(mailOptions, (error, info) => {
+                    if (error) {
+                        console.log(error)
+                    }
+                })
+            }
+
+            console.log(postData.data)
+            
+            return res.status(200).json({
                 data: request.data,
                 message: "Tambah Permintaan RB Berhasil",
                 status: "success"
@@ -269,7 +398,7 @@ export async function get_rb_return_by_id_permintaan(req: Request, res: Response
 export async function set_nomor_rb_return(req: Request, res: Response, next: NextFunction) {
     try {
         const idNomor = req.params.idNomor
-        
+
         const { status, nomor_batch, tanggal_kembali }: { status: Status | undefined, nomor_batch: string | null | undefined, tanggal_kembali: string | null | undefined } = req.body
 
         const data = {
@@ -422,7 +551,7 @@ export async function generate_report_serah_terima(req: Request, res: Response, 
             (request.data as ILaporanSerahTerimaRB[]).forEach((item, index) => {
                 const row = sheet.addRow({
                     id: i,
-                    namaProduk: (index == 0 ? item.namaProduk : item.namaProduk == (request.data![index-1] as ILaporanSerahTerimaRB).namaProduk ? "" : item.namaProduk),
+                    namaProduk: (index == 0 ? item.namaProduk : item.namaProduk == (request.data![index - 1] as ILaporanSerahTerimaRB).namaProduk ? "" : item.namaProduk),
                     POPS: item.tipeMBR,
                     noDokumen: item.nomorMBR,
                     nomorUrut: item.nomorUrut,
@@ -475,7 +604,7 @@ export async function generate_report_serah_terima(req: Request, res: Response, 
                 for (let col = 1; col <= 7; col++) {
                     const cell = sheet.getCell(row, col);
                     if (row === 1) cell.border = { ...cell.border, top: { style: "thin" } };
-                    if (row === 3) cell.border = { ...cell.border, bottom: { style: "thin" }};
+                    if (row === 3) cell.border = { ...cell.border, bottom: { style: "thin" } };
                     if (col === 1) cell.border = { ...cell.border, left: { style: "thin" } };
                     if (col === 6) cell.border = { ...cell.border, left: { style: "thin" } };
                     if (col === 7) cell.border = { ...cell.border, right: { style: "thin" } };

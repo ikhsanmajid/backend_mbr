@@ -17,6 +17,8 @@ interface RequestRB {
     idConfirmed?: number | string;
     timeConfirmed?: string | Date;
     namaConfirmed?: string;
+    emailCreated?: string;
+    emailConfirmed?: string;
     status?: Konfirmasi;
     used?: boolean;
     reason?: string | null;
@@ -97,13 +99,25 @@ export async function add_request(data: RequestRB): Promise<ResultModel<{ reques
                 select: {
                     id: true,
                     idCreated: true,
+                    idPermintaanUsersCreatedFK: {
+                        select: {
+                            nama: true,
+                        }
+                    },
+                    idBagianCreatedFK: {
+                        select: {
+                            namaBagian: true
+                        }
+                    },
                     timeCreated: true
                 }
             })
 
             const result: RequestRB = {
-                id: addRequestRB.id,
+                id: Number(addRequestRB.id),
                 idCreated: addRequestRB.idCreated!,
+                namaCreated: addRequestRB.idPermintaanUsersCreatedFK?.nama,
+                namaBagianCreated: addRequestRB.idBagianCreatedFK.namaBagian,
                 timeCreated: addRequestRB.timeCreated?.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
             }
 
@@ -150,29 +164,41 @@ export async function add_request(data: RequestRB): Promise<ResultModel<{ reques
 export async function edit_request(data: RequestRB): Promise<ResultModel<{ requestRB: RequestRB, detailPermintaan: DetailPermintaan[] } | null>> {
     try {
         const transactionRequest = await prisma.$transaction(async (tx: Prisma.TransactionClient): Promise<{ requestMBR: RequestRB, detailPermintaan: DetailPermintaan[] } | null> => {
-            const deleteOldRequest = await tx.permintaan.delete({
+            const deleteOldRequest = await tx.detailpermintaanmbr.deleteMany({
                 where: {
-                    id: data.oldid!
+                    idPermintaanMbr: data.oldid
                 }
             })
 
-            const addRequestRB = await tx.permintaan.create({
+            const updateRequestRB = await tx.permintaan.update({
                 data: {
-                    idCreated: parseInt(data.idCreated!.toString()),
-                    idBagianCreated: parseInt(data.idBagianCreated!.toString()),
-                    timeCreated: data.timeCreated!,
+                    idConfirmed: null,
+                    reason: null,
+                    timeConfirmed: null,
+                    status: "PENDING"
                 },
                 select: {
                     id: true,
-                    idCreated: true,
-                    timeCreated: true
+                    idPermintaanUsersCreatedFK: {
+                        select: {
+                            nama: true,
+                        }
+                    },
+                    idBagianCreatedFK: {
+                        select: {
+                            namaBagian: true
+                        }
+                    },
+                },
+                where: {
+                    id: data.oldid
                 }
             })
 
             const result: RequestRB = {
-                id: addRequestRB.id,
-                idCreated: addRequestRB.idCreated!,
-                timeCreated: addRequestRB.timeCreated?.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+                id: Number(updateRequestRB.id),
+                namaCreated: updateRequestRB.idPermintaanUsersCreatedFK?.nama,
+                namaBagianCreated: updateRequestRB.idBagianCreatedFK.namaBagian,
             }
 
             const listMBR: DetailPermintaan[] = Array()
@@ -243,44 +269,48 @@ export async function get_request_by_bagian(data: { idBagian: number | null, yea
         const year = new Date().getFullYear()
 
         const query = `SELECT 
-            r.id,
-            r.idCreated,
-            r.timeCreated,
-            r.idBagianCreated,
-            b.namaBagian AS namaBagianCreated,
-            r.idConfirmed,
-            ucr.nama AS namaCreated,
-            uc.nama AS namaConfirmed,
-            r.timeConfirmed,
-            ucr.nik AS nikCreated,
-            r.reason,
-            r.used,
-            r.status
+            r."id",
+            r."idCreated",
+            r."timeCreated",
+            r."idBagianCreated",
+            b."namaBagian" AS "namaBagianCreated",
+            r."idConfirmed",
+            ucr."nama" AS "namaCreated",
+            uc."nama" AS "namaConfirmed",
+            r."timeConfirmed",
+            ucr."nik" AS "nikCreated",
+            r."reason",
+            r."used",
+            r."status"
         FROM 
-            permintaan r
-            JOIN bagian b ON r.idBagianCreated = b.id
-            JOIN users ucr ON r.idCreated = ucr.id 
-            LEFT JOIN users uc ON r.idConfirmed = uc.id
-            JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
-            JOIN produk p ON d.idProduk = p.id
+            "permintaan" r
+        JOIN 
+            "bagian" b ON r."idBagianCreated" = b."id"
+        JOIN 
+            "users" ucr ON r."idCreated" = ucr."id"
+        LEFT JOIN 
+            "users" uc ON r."idConfirmed" = uc."id"
+        JOIN 
+            "detailpermintaanmbr" d ON r."id" = d."idPermintaanMbr"
+        JOIN 
+            "produk" p ON d."idProduk" = p."id"
         WHERE 
-            1=1
-            ${data.idBagian ? ` AND r.idBagianCreated = ${data.idBagian}` : ''}
+            1 = 1
+            ${data.idBagian ? ` AND r."idBagianCreated" = ${data.idBagian}` : ''}
             ${(data.keyword !== null) ? `AND (
-                ucr.nama LIKE '%${data.keyword}%' OR
-                ucr.nik LIKE '%${data.keyword}%'
+                ucr."nama" ILIKE '%${data.keyword}%' OR
+                ucr."nik" ILIKE '%${data.keyword}%'
             )` : ""}            
-            ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
-            ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
-            ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
-            AND YEAR(r.timeCreated) = ${data.year ?? year}
+            ${(data.idProduk !== null) ? `AND p."id" = ${data.idProduk}` : ""}
+            ${(data.status !== null) ? `AND r."status" = '${data.status}'` : ""}
+            ${(data.used !== null) ? `AND r."used" = ${data.used}` : ""}
+            AND EXTRACT(YEAR FROM r."timeCreated") = ${data.year ?? year}
         GROUP BY 
-            r.id, r.idCreated, r.timeCreated, r.idBagianCreated, b.namaBagian, 
-            r.idConfirmed, r.timeConfirmed, r.STATUS, r.reason, r.used
+            r."id", r."idCreated", r."timeCreated", r."idBagianCreated", b."namaBagian", 
+            r."idConfirmed", r."timeConfirmed", r."status", r."reason", r."used", ucr."nama", uc."nama", ucr."nik"
         ORDER BY 
-            r.timeCreated DESC
-        LIMIT ${data.limit ?? ''}
-        OFFSET ${data.offset ?? ''}`
+            r."timeCreated" DESC
+        ${data.limit !== null && data.offset !== null ? `LIMIT ${data.limit} OFFSET ${data.offset}` : ''}`
 
         const getRequest = await prisma.$queryRaw<RequestRB[]>(Prisma.sql([query]))
 
@@ -305,29 +335,29 @@ export async function get_request_by_bagian(data: { idBagian: number | null, yea
         })
 
         const queryCount = `SELECT 
-                COUNT(*) as "count"
-            FROM (
-                SELECT
-                    r.id AS id
-                FROM
-                    permintaan r
-                JOIN users ucr ON r.idCreated = ucr.id 
-                JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
-                JOIN produk p ON d.idProduk = p.id
-                WHERE 
+            COUNT(*) as "count"
+        FROM (
+            SELECT
+                r."id" AS "id"
+            FROM
+                "permintaan" r
+            JOIN "users" ucr ON r."idCreated" = ucr."id" 
+            JOIN "detailpermintaanmbr" d ON r."id" = d."idPermintaanMbr"
+            JOIN "produk" p ON d."idProduk" = p."id"
+            WHERE 
                 1=1
-                    ${data.idBagian ? ` AND r.idBagianCreated = ${data.idBagian}` : ''}
-                    ${(data.keyword !== null) ? `AND (
-                        ucr.nama LIKE '%${data.keyword}%' OR
-                        ucr.nik LIKE '%${data.keyword}%'
-                    )` : ""}            
-                    ${(data.idProduk !== null) ? `AND p.id = ${data.idProduk}` : ""}
-                    ${(data.status !== null) ? `AND r.status = '${data.status}'` : ""}
-                    ${(data.used !== null) ? `AND r.used = ${data.used}` : ""}
-                    AND YEAR(r.timeCreated) = ${data.year ?? year}
-                GROUP BY
-                    r.id
-            ) as subquery;`
+                ${data.idBagian ? ` AND r."idBagianCreated" = ${data.idBagian}` : ''}
+                ${(data.keyword !== null) ? `AND (
+                    ucr."nama" LIKE '%${data.keyword}%' OR
+                    ucr."nik" LIKE '%${data.keyword}%'
+                )` : ""}            
+                ${(data.idProduk !== null) ? `AND p."id" = ${data.idProduk}` : ""}
+                ${(data.status !== null) ? `AND r."status" = '${data.status}'` : ""}
+                ${(data.used !== null) ? `AND r."used" = ${data.used}` : ""}
+                AND EXTRACT(YEAR FROM r."timeCreated") = ${data.year ?? year}
+            GROUP BY
+                r."id"
+        ) AS "subquery";`
 
         const count = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql([queryCount]))
 
@@ -379,61 +409,66 @@ export async function get_request_by_id(id: number): Promise<ResultModel<Request
 export async function get_rb_return_by_product(id: number, status: string | null, numberFind: string | null, limit: number | null, offset: number | null, startDate: string | null, endDate: string | null): Promise<ResultModel<ReturnRBResult[] | null> | { data: string }> {
     try {
         let query = `SELECT
-            d.idPermintaanMbr AS "id",
-            d.idProduk,
-            p.namaProduk,
-            DAY(r.timeCreated) AS "tanggal",
-            MONTH(r.timeCreated) AS "bulan",
-            YEAR(r.timeCreated) AS "tahun",
-            MIN(n.nomorUrut) AS "nomorAwal",
-            MAX(n.nomorUrut) AS "nomorAkhir",
-            COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) AS "RBBelumKembali"
+            d."idPermintaanMbr" AS "id",
+            d."idProduk",
+            p."namaProduk",
+            EXTRACT(DAY FROM r."timeCreated") AS "tanggal",
+            EXTRACT(MONTH FROM r."timeCreated") AS "bulan",
+            EXTRACT(YEAR FROM r."timeCreated") AS "tahun",
+            MIN(n."nomorUrut") AS "nomorAwal",
+            MAX(n."nomorUrut") AS "nomorAkhir",
+            COUNT(CASE WHEN n."status" = 'ACTIVE' THEN 1 END) AS "RBBelumKembali"
         FROM
-            nomormbr n
+            "nomormbr" n
         JOIN 
-            detailpermintaanmbr d ON d.id = n.idDetailPermintaan
+            "detailpermintaanmbr" d ON d."id" = n."idDetailPermintaan"
         JOIN
-            produk p ON p.id = d.idProduk
+            "produk" p ON p."id" = d."idProduk"
         JOIN
-            permintaan r ON r.id = d.idPermintaanMbr
+            "permintaan" r ON r."id" = d."idPermintaanMbr"
         WHERE
-            d.idProduk = ${id}
+            d."idProduk" = ${id}
             ${(startDate !== null && endDate !== null) ? `AND (
-		    ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		    AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
-	        )` : ""}
+                EXTRACT(YEAR FROM r."timeCreated") >= ${startDate.split("-")[1]} 
+                AND EXTRACT(MONTH FROM r."timeCreated") >= ${startDate.split("-")[0]} 
+                AND EXTRACT(YEAR FROM r."timeCreated") <= ${endDate.split("-")[1]} 
+                AND EXTRACT(MONTH FROM r."timeCreated") <= ${endDate.split("-")[0]}
+            )` : ""}
         GROUP BY
-            p.namaProduk, r.timeCreated, d.idProduk, d.idPermintaanMbr 
+            d."idPermintaanMbr", d."idProduk", p."namaProduk", r."timeCreated"
         HAVING 
-        1=1           
-        ${status == "belum" ? ` AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
-        ${(numberFind !== null) ? ` AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
-        ${limit != null && offset != null ? `LIMIT ${limit} OFFSET ${offset}` : ""}`
+            1=1
+            ${status == "belum" ? `AND COUNT(CASE WHEN n."status" = 'ACTIVE' THEN 1 END) > 0` : ""}
+            ${(numberFind !== null) ? `AND SUM(CASE WHEN n."nomorUrut" LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
+            ${limit != null && offset != null ? `LIMIT ${limit} OFFSET ${offset}` : ""}`
 
         const getRequest = await prisma.$queryRaw<ReturnRBQuery[]>(Prisma.sql([query]))
 
-        const countQuery = `SELECT COUNT(*) as "count" FROM
-            (SELECT
-            d.idPermintaanMbr
+        const countQuery = `SELECT COUNT(*) AS "count"
+        FROM (
+            SELECT
+                d."idPermintaanMbr"
             FROM
-                nomormbr n
+                "nomormbr" n
             JOIN 
-                detailpermintaanmbr d ON d.id = n.idDetailPermintaan
+                "detailpermintaanmbr" d ON d."id" = n."idDetailPermintaan"
             JOIN
-                permintaan r ON r.id = d.idPermintaanMbr
+                "permintaan" r ON r."id" = d."idPermintaanMbr"
             WHERE
-                d.idProduk = ${id}
+                d."idProduk" = ${id}
                 ${(startDate !== null && endDate !== null) ? `AND (
-		        ( YEAR ( r.timeCreated ) >= ${startDate.split("-")[1]} AND MONTH ( r.timeCreated ) >= ${startDate.split("-")[0]} ) 
-		        AND ( YEAR ( r.timeCreated ) <= ${endDate.split("-")[1]} AND MONTH ( r.timeCreated ) <= ${endDate.split("-")[0]} ) 
-	            )` : ""}
+                    EXTRACT(YEAR FROM r."timeCreated") >= ${startDate.split("-")[1]} 
+                    AND EXTRACT(MONTH FROM r."timeCreated") >= ${startDate.split("-")[0]} 
+                    AND EXTRACT(YEAR FROM r."timeCreated") <= ${endDate.split("-")[1]} 
+                    AND EXTRACT(MONTH FROM r."timeCreated") <= ${endDate.split("-")[0]}
+                )` : ""}
             GROUP BY
-                d.idPermintaanMbr
+                d."idPermintaanMbr"
             HAVING
-            1=1
-            ${(numberFind !== null) ? ` AND SUM(CASE WHEN n.nomorUrut LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
-            ${status == "belum" ? ` AND COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}
-            ) as subquery`
+                1 = 1
+                ${(numberFind !== null) ? `AND SUM(CASE WHEN n."nomorUrut" LIKE '%${numberFind}' THEN 1 ELSE 0 END) > 0` : ""}
+                ${status == "belum" ? `AND COUNT(CASE WHEN n."status" = 'ACTIVE' THEN 1 END) > 0` : ""}
+        ) AS subquery;`
 
         const getCount = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql([countQuery]))
 
@@ -469,30 +504,31 @@ export async function get_rb_return_by_product(id: number, status: string | null
 export async function get_rb_return_by_product_and_permintaan(id: number, idPermintaan: number, status: string | null): Promise<ResultModel<ReturnRBResult[] | null> | { data: string }> {
     try {
         const query = `
-        SELECT
-        d.id,
-            d.nomorMBR,
-            d.tipeMBR,
-            p.namaProduk,
-            DAY(r.timeCreated) AS "tanggal",
-            MONTH(r.timeCreated) AS "bulan",
-            YEAR(r.timeCreated) AS "tahun",
-            MIN(n.nomorUrut) AS "nomorAwal",
-            MAX(n.nomorUrut) AS "nomorAkhir",
-            COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) AS "RBBelumKembali"
+                SELECT
+            d."id",
+            d."nomorMBR",
+            d."tipeMBR",
+            p."namaProduk",
+            EXTRACT(DAY FROM r."timeCreated") AS "tanggal",
+            EXTRACT(MONTH FROM r."timeCreated") AS "bulan",
+            EXTRACT(YEAR FROM r."timeCreated") AS "tahun",
+            MIN(n."nomorUrut") AS "nomorAwal",
+            MAX(n."nomorUrut") AS "nomorAkhir",
+            COUNT(CASE WHEN n."status" = 'ACTIVE' THEN 1 END) AS "RBBelumKembali"
         FROM
-            nomormbr n
+            "nomormbr" n
         JOIN 
-            detailpermintaanmbr d ON d.id = n.idDetailPermintaan
+            "detailpermintaanmbr" d ON d."id" = n."idDetailPermintaan"
         JOIN
-            produk p ON p.id = d.idProduk
+            "produk" p ON p."id" = d."idProduk"
         JOIN
-            permintaan r ON r.id = d.idPermintaanMbr
+            "permintaan" r ON r."id" = d."idPermintaanMbr"
         WHERE
-        d.idProduk = ${id} AND d.idPermintaanMbr = ${idPermintaan}
+            d."idProduk" = ${id} 
+            AND d."idPermintaanMbr" = ${idPermintaan}
         GROUP BY
-        p.namaProduk, r.timeCreated, d.id, d.nomorMBR, d.tipeMBR
-        ${status == "belum" ? `HAVING COUNT(CASE WHEN n.status = 'ACTIVE' THEN 1 END) > 0` : ""}`
+            d."id", d."nomorMBR", d."tipeMBR", p."namaProduk", r."timeCreated"
+        ${status == "belum" ? `HAVING COUNT(CASE WHEN n."status" = 'ACTIVE' THEN 1 END) > 0` : ""}`
 
         const getRequest = await prisma.$queryRaw<ReturnRBQuery[]>(Prisma.sql([query]))
 
@@ -508,7 +544,7 @@ export async function get_rb_return_by_product_and_permintaan(id: number, idPerm
                 tipeMBR: item.tipeMBR,
                 nomorMBR: item.nomorMBR,
                 namaProduk: item.namaProduk,
-                tanggalBulan: `${item.tanggal} -${item.bulan} `,
+                tanggalBulan: `${item.tanggal}-${item.bulan} `,
                 tahun: String(item.tahun),
                 nomorAwal: item.nomorAwal,
                 nomorAkhir: item.nomorAkhir,
@@ -553,7 +589,7 @@ export async function get_rb_return_by_id_permintaan(idPermintaan: number, limit
 
         getRequest.map(item => {
             result.push({
-                id: item.id,
+                id: Number(item.id),
                 nomorUrut: item.nomorUrut,
                 status: item.status,
                 tanggalKembali: item.tanggalKembali?.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }),
@@ -656,22 +692,28 @@ export async function generate_report_dashboard_user(idBagian: number): Promise<
         //console.log(bulanTahun)
 
         const query = `SELECT
-                COUNT(CASE 
-                        WHEN n.status = 'ACTIVE'
-                        AND ((MONTH(r.timeCreated) <= ${bulanTahun[0]} AND YEAR(r.timeCreated) <= ${bulanTahun[1]}) OR r.timeCreated IS NULL)
-                        THEN 1 
-                        ELSE NULL 
-                    END) AS count,
-                    b.namaBagian
-                FROM
-                    bagian b
-                    LEFT JOIN permintaan r ON b.id = r.idBagianCreated
-                    LEFT JOIN detailpermintaanmbr d ON r.id = d.idPermintaanMbr
-                    LEFT JOIN nomormbr n ON d.id = n.idDetailPermintaan
-                WHERE
-                    b.id = ${idBagian}
-                GROUP BY
-                b.namaBagian;`
+            COUNT(CASE 
+                    WHEN n."status" = 'ACTIVE'
+                    AND (
+                        (EXTRACT(MONTH FROM r."timeCreated") <= ${bulanTahun[0]} AND EXTRACT(YEAR FROM r."timeCreated") <= ${bulanTahun[1]})
+                        OR r."timeCreated" IS NULL
+                    )
+                    THEN 1 
+                    ELSE NULL 
+                END) AS "count",
+            b."namaBagian"
+        FROM
+            "bagian" b
+        LEFT JOIN 
+            "permintaan" r ON b."id" = r."idBagianCreated"
+        LEFT JOIN 
+            "detailpermintaanmbr" d ON r."id" = d."idPermintaanMbr"
+        LEFT JOIN 
+            "nomormbr" n ON d."id" = n."idDetailPermintaan"
+        WHERE
+            b."id" = ${idBagian}
+        GROUP BY
+            b."namaBagian";`
 
         const getRequest = await prisma.$queryRaw<{ count: number, namaBagian: string }[]>(Prisma.sql([query]))
 
@@ -701,19 +743,19 @@ export async function generate_report_dashboard_user(idBagian: number): Promise<
         //                     b.id = ${idBagian}`
 
         const queryRBDibuat = `SELECT
-                        b.namaBagian,
-                        (SELECT COUNT(n2.id)
-                        FROM permintaan r2
-                        LEFT JOIN detailpermintaanmbr d2 ON r2.id = d2.idPermintaanMbr
-                        LEFT JOIN nomormbr n2 ON d2.id = n2.idDetailPermintaan
-                        WHERE r2.idBagianCreated = b.id
-                        AND (YEAR(r2.timeCreated) = ${yearNow} OR r2.timeCreated IS NULL)
-                        AND (n2.id IS NOT NULL OR r2.timeCreated IS NULL)
-                        ) AS count
-                    FROM
-                        bagian b
-                    WHERE
-                        b.id = ${idBagian};`
+            b."namaBagian",
+            (SELECT COUNT(n2."id")
+            FROM "permintaan" r2
+            LEFT JOIN "detailpermintaanmbr" d2 ON r2."id" = d2."idPermintaanMbr"
+            LEFT JOIN "nomormbr" n2 ON d2."id" = n2."idDetailPermintaan"
+            WHERE r2."idBagianCreated" = b."id"
+            AND (EXTRACT(YEAR FROM r2."timeCreated") = ${yearNow} OR r2."timeCreated" IS NULL)
+            AND (n2."id" IS NOT NULL OR r2."timeCreated" IS NULL)
+            ) AS "count"
+        FROM
+            "bagian" b
+        WHERE
+            b."id" = ${idBagian};`
 
         const getRequestRBDibuat = await prisma.$queryRaw<{ count: number, namaBagian: string }[]>(Prisma.sql([queryRBDibuat]))
         const resultRBDibuat = new Array()
@@ -740,30 +782,30 @@ export async function generate_report_dashboard_user(idBagian: number): Promise<
 export async function generate_report_serah_terima(idBagian: number, idUser: number, startDate: string | null, endDate: string | null): Promise<ResultModel<ILaporanSerahTerimaRB[] | null> | { data: string }> {
     try {
         const query = `SELECT
-                p.namaProduk,
-                d.tipeMBR,
-                d.nomorMBR,
-                n.nomorBatch,
-                n.nomorUrut,
-                b.namaBagian
-            FROM
-                permintaan r
-                JOIN detailpermintaanmbr d ON d.idPermintaanMbr = r.id
-                JOIN produk p ON d.idProduk = p.id
-                JOIN nomormbr n ON n.idDetailPermintaan = d.id
-                JOIN bagian b ON r.idBagianCreated = b.id
-                JOIN kategori k ON k.id = p.idKategori
-            WHERE
-                r.idBagianCreated = ${idBagian}
-                AND n.idUserKembali = ${idUser}
-                AND n.tanggalKembali BETWEEN '${startDate}' AND '${endDate}'
-                AND n.status IN ('KEMBALI', 'BATAL')
-            ORDER BY
-                k.namaKategori ASC,
-                p.namaProduk ASC,    
-                n.nomorBatch ASC,
-                d.tipeMBR ASC,
-                n.nomorUrut ASC; `
+            p."namaProduk",
+            d."tipeMBR",
+            d."nomorMBR",
+            n."nomorBatch",
+            n."nomorUrut",
+            b."namaBagian"
+        FROM
+            "permintaan" r
+            JOIN "detailpermintaanmbr" d ON d."idPermintaanMbr" = r."id"
+            JOIN "produk" p ON d."idProduk" = p."id"
+            JOIN "nomormbr" n ON n."idDetailPermintaan" = d."id"
+            JOIN "bagian" b ON r."idBagianCreated" = b."id"
+            JOIN "kategori" k ON k."id" = p."idKategori"
+        WHERE
+            r."idBagianCreated" = ${idBagian}
+            AND n."idUserKembali" = ${idUser}
+            AND n."tanggalKembali" BETWEEN '${startDate}' AND '${endDate}'
+            AND n."status" IN ('KEMBALI', 'BATAL')
+        ORDER BY
+            k."namaKategori" ASC,
+            p."namaProduk" ASC,    
+            n."nomorBatch" ASC,
+            d."tipeMBR" ASC,
+            n."nomorUrut" ASC;`
 
         const getRequest = await prisma.$queryRaw<ILaporanSerahTerimaRB[]>(Prisma.sql([query]))
 

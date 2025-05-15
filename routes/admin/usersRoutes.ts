@@ -25,5 +25,6 @@ router.delete("/deleteJabatan/:id", [check_is_authorized_admin], admin_users.del
 
 // update password
 router.patch("/updatePassword/:id", [get_user_id], admin_users.update_password) // sudah dokumentasi
+//router.post("/hashPassword", admin_users.hash_password_generate)
 
 export default router;
