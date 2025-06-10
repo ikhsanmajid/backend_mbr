@@ -15,6 +15,81 @@ interface User {
     password?: string;
 }
 
+export async function get_admin_mail(): Promise<ResultModel<User[] | null>> {
+
+    try {
+
+        const getMailList = await prisma.users.findMany({
+            select: {
+                id: true,
+                email: true
+            },
+            where: {
+                isActive: true,
+                isAdmin: true,
+                NOT: {
+                    jabatanBagian: {
+                        some: {
+                            idBagianJabatanFK: {
+                                idJabatanFK: {
+                                    OR: [{
+                                        namaJabatan: "Manager"
+                                    }, {
+                                        namaJabatan: "Officer"
+                                    }]
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        return { data: getMailList }
+
+    } catch (error: any) {
+        throw error
+    }
+}
+
+export async function get_dco_mail(): Promise<ResultModel<User[] | null>> {
+
+    try {
+
+        const getMailList = await prisma.users.findMany({
+            select: {
+                id: true,
+                email: true,
+            },
+            where: {
+                AND: [
+                    {
+                        jabatanBagian: {
+                            some: {
+                                idBagianJabatanFK: {
+                                    AND: [
+                                        { idBagianFK: { namaBagian: "Document Control" } },
+                                        { idJabatanFK: { namaJabatan: "Officer" } }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    {
+                        isActive: true
+                    }
+                ]
+            }
+        })
+
+        return { data: getMailList }
+
+    } catch (error: any) {
+        throw error
+    }
+}
+
 export async function add_user_model(data: any): Promise<ResultModel<User | null>> {
 
     try {

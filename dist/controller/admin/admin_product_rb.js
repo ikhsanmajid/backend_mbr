@@ -63,6 +63,8 @@ exports.generate_report_pembuatan_rb = generate_report_pembuatan_rb;
 const adminProductRb = __importStar(require("../../services/admin/admin_product_rb_service"));
 const client_1 = require("@prisma/client");
 const exceljs = __importStar(require("exceljs"));
+const mailer_1 = require("../../helper/mailer");
+const admin_users_service_1 = require("../../services/admin/admin_users_service");
 const months = [
     { id: 1, nama: 'Januari' },
     { id: 2, nama: 'Februari' },
@@ -80,7 +82,7 @@ const months = [
 //ANCHOR - Konfirmasi RB
 function confirm_request(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
+        var _a, _b, _c, _d, _e;
         try {
             let postData = {
                 id: req.params.id,
@@ -92,6 +94,35 @@ function confirm_request(req, res, next) {
             if (postData.action == "confirm") {
                 const confirmPermintaan = yield adminProductRb.accept_permintaan(postData);
                 if ('data' in confirmPermintaan) {
+                    const ccDcoEmail = yield (0, admin_users_service_1.get_dco_mail)();
+                    const ccDocControl = yield (0, admin_users_service_1.get_admin_mail)();
+                    if ('data' in ccDocControl && 'data' in ccDcoEmail && ccDocControl.data.length > 0) {
+                        const mailOptions = {
+                            sender: process.env.USER_MAIL,
+                            to: (_b = confirmPermintaan.data) === null || _b === void 0 ? void 0 : _b.emailCreated,
+                            cc: [ccDcoEmail.data.map(item => item.email).join(', '), ccDocControl.data.map(item => item.email).join(', ')],
+                            subject: `[No Reply] Transaksi Permintaan Nomor MBR Sudah Dikonfirmasi`,
+                            html: `
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">Dengan Hormat,</p>
+                
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">
+                                        Permintaan nomor MBR anda dengan nomor transaksi ${confirmPermintaan.data.id} sudah dikonfirmasi oleh <span style="color: black; font-weight: bold;">${(_c = confirmPermintaan.data) === null || _c === void 0 ? void 0 : _c.nameConfirmed}&#8203;</span>
+                                    </p>
+                
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 10px 0 0 0;">Terima kasih.</p>
+                                    <br/>
+                                    <br/>
+                                    <p style="color: gray; font-size: 8px; line-height: 1.5; margin: 10px 0 0 0;">
+                                        <i>Email ini dikirim pada: <span style="font-weight: bold;">${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}</span></i>
+                                    </p>
+                                    `
+                        };
+                        mailer_1.transporter.sendMail(mailOptions, (error, info) => {
+                            if (error) {
+                                console.log(error);
+                            }
+                        });
+                    }
                     return res.status(200).json({
                         data: confirmPermintaan.data,
                         message: "Confirm Permintaan Berhasil",
@@ -105,6 +136,35 @@ function confirm_request(req, res, next) {
             if (postData.action == "reject") {
                 const confirmPermintaan = yield adminProductRb.reject_permintaan(postData);
                 if ('data' in confirmPermintaan) {
+                    const ccDcoEmail = yield (0, admin_users_service_1.get_dco_mail)();
+                    const ccDocControl = yield (0, admin_users_service_1.get_admin_mail)();
+                    if ('data' in ccDocControl && 'data' in ccDcoEmail && ccDocControl.data.length > 0) {
+                        const mailOptions = {
+                            sender: process.env.USER_MAIL,
+                            to: (_d = confirmPermintaan.data) === null || _d === void 0 ? void 0 : _d.emailCreated,
+                            cc: [ccDcoEmail.data.map(item => item.email).join(', '), ccDocControl.data.map(item => item.email).join(', ')],
+                            subject: `[No Reply] Transaksi Permintaan Nomor MBR Ditolak`,
+                            html: `
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">Dengan Hormat,</p>
+                
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">
+                                        Permintaan nomor MBR anda dengan nomor transaksi ${confirmPermintaan.data.id} ditolak oleh <span style="color: black; font-weight: bold;">${(_e = confirmPermintaan.data) === null || _e === void 0 ? void 0 : _e.nameConfirmed}&#8203;</span> dengan alasan ${postData.reason}.
+                                    </p>
+                
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 10px 0 0 0;">Terima kasih.</p>
+                                    <br/>
+                                    <br/>
+                                    <p style="color: gray; font-size: 8px; line-height: 1.5; margin: 10px 0 0 0;">
+                                        <i>Email ini dikirim pada: <span style="font-weight: bold;">${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}</span></i>
+                                    </p>
+                                    `
+                        };
+                        mailer_1.transporter.sendMail(mailOptions, (error, info) => {
+                            if (error) {
+                                console.log(error);
+                            }
+                        });
+                    }
                     return res.status(200).json({
                         data: confirmPermintaan.data,
                         message: "Reject Permintaan Berhasil",
@@ -474,7 +534,8 @@ function get_rb_return_by_product_and_permintaan(req, res, next) {
             }
         }
         catch (error) {
-            return next(error);
+            // return next(error)
+            return res.json(error);
         }
     });
 }
@@ -563,11 +624,12 @@ function generate_report_rb_belum_kembali_perbagian(req, res, next) {
             const startDate = req.query.startDate == undefined ? null : String(req.query.startDate);
             const endDate = req.query.endDate == undefined ? null : String(req.query.endDate);
             const statusReq = req.query.statusKembali == undefined ? null : String(req.query.statusKembali);
-            const date1input = startDate !== null && startDate !== void 0 ? startDate : "01-2024";
+            const dateNow = new Date();
+            const date1input = startDate !== null && startDate !== void 0 ? startDate : `01-${dateNow.getFullYear()}`;
             const [month1, year1] = date1input.split("-");
             const date1 = new Date(`${year1}-${month1}-01`);
             const formattedStartDate = new Intl.DateTimeFormat("id-ID", { year: "numeric", month: "long" }).format(date1);
-            const date2input = endDate !== null && endDate !== void 0 ? endDate : "12-2024"; // Format MM-YY
+            const date2input = endDate !== null && endDate !== void 0 ? endDate : `12-${dateNow.getFullYear()}`; // Format MM-YY
             const [month2, year2] = date2input.split("-");
             const date2 = new Date(`${year2}-${month2}-01`); // Mengonversi ke Date
             const formattedEndDate = new Intl.DateTimeFormat("id-ID", { year: "numeric", month: "long" }).format(date2);

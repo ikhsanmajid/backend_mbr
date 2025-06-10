@@ -1,8 +1,12 @@
 import { NextFunction, Request, Response } from "express";
 import * as adminProductRb from "../../services/admin/admin_product_rb_service";
+import { Permintaan } from "../../services/admin/admin_product_rb_service";
 import { Konfirmasi, Status } from "@prisma/client";
 import * as exceljs from "exceljs"
 import { ILaporanRB } from "../../services/admin/admin_product_rb_service";
+import { transporter } from "../../helper/mailer";
+import { MailOptions } from "nodemailer/lib/sendmail-transport";
+import { get_admin_mail, get_dco_mail } from "../../services/admin/admin_users_service";
 
 interface kategori {
     id?: string | number;
@@ -47,6 +51,36 @@ export async function confirm_request(req: Request, res: Response, next: NextFun
             const confirmPermintaan = await adminProductRb.accept_permintaan(postData)
 
             if ('data' in confirmPermintaan!) {
+                const ccDcoEmail = await get_dco_mail()
+                const ccDocControl = await get_admin_mail()
+                if ('data' in ccDocControl! && 'data' in ccDcoEmail! && ccDocControl!.data!.length > 0) {
+                    const mailOptions: MailOptions = {
+                        sender: process.env.USER_MAIL! as string,
+                        to: confirmPermintaan.data?.emailCreated,
+                        cc: [ccDcoEmail.data!.map(item => item.email).join(', '), ccDocControl.data!.map(item => item.email).join(', ')],
+                        subject: `[No Reply] Transaksi Permintaan Nomor MBR Sudah Dikonfirmasi`,
+                        html: `
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">Dengan Hormat,</p>
+                
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">
+                                        Permintaan nomor MBR anda dengan nomor transaksi ${confirmPermintaan.data!.id} sudah dikonfirmasi oleh <span style="color: black; font-weight: bold;">${confirmPermintaan.data?.nameConfirmed}&#8203;</span>
+                                    </p>
+                
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 10px 0 0 0;">Terima kasih.</p>
+                                    <br/>
+                                    <br/>
+                                    <p style="color: gray; font-size: 8px; line-height: 1.5; margin: 10px 0 0 0;">
+                                        <i>Email ini dikirim pada: <span style="font-weight: bold;">${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}</span></i>
+                                    </p>
+                                    `
+                    }
+
+                    transporter.sendMail(mailOptions, (error, info) => {
+                        if (error) {
+                            console.log(error)
+                        }
+                    })
+                }
                 return res.status(200).json({
                     data: confirmPermintaan.data,
                     message: "Confirm Permintaan Berhasil",
@@ -61,6 +95,36 @@ export async function confirm_request(req: Request, res: Response, next: NextFun
             const confirmPermintaan = await adminProductRb.reject_permintaan(postData)
 
             if ('data' in confirmPermintaan!) {
+                const ccDcoEmail = await get_dco_mail()
+                const ccDocControl = await get_admin_mail()
+                if ('data' in ccDocControl! && 'data' in ccDcoEmail! && ccDocControl!.data!.length > 0) {
+                    const mailOptions: MailOptions = {
+                        sender: process.env.USER_MAIL! as string,
+                        to: confirmPermintaan.data?.emailCreated,
+                        cc: [ccDcoEmail.data!.map(item => item.email).join(', '), ccDocControl.data!.map(item => item.email).join(', ')],
+                        subject: `[No Reply] Transaksi Permintaan Nomor MBR Ditolak`,
+                        html: `
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">Dengan Hormat,</p>
+                
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">
+                                        Permintaan nomor MBR anda dengan nomor transaksi ${confirmPermintaan.data!.id} ditolak oleh <span style="color: black; font-weight: bold;">${confirmPermintaan.data?.nameConfirmed}&#8203;</span> dengan alasan ${postData.reason}.
+                                    </p>
+                
+                                    <p style="color: black; font-size: 14px; line-height: 1.5; margin: 10px 0 0 0;">Terima kasih.</p>
+                                    <br/>
+                                    <br/>
+                                    <p style="color: gray; font-size: 8px; line-height: 1.5; margin: 10px 0 0 0;">
+                                        <i>Email ini dikirim pada: <span style="font-weight: bold;">${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}</span></i>
+                                    </p>
+                                    `
+                    }
+
+                    transporter.sendMail(mailOptions, (error, info) => {
+                        if (error) {
+                            console.log(error)
+                        }
+                    })
+                }
                 return res.status(200).json({
                     data: confirmPermintaan.data,
                     message: "Reject Permintaan Berhasil",
@@ -439,7 +503,8 @@ export async function get_rb_return_by_product_and_permintaan(req: Request, res:
             throw request
         }
     } catch (error) {
-        return next(error)
+        // return next(error)
+        return res.json(error)
     }
 }
 
@@ -526,13 +591,15 @@ export async function generate_report_rb_belum_kembali_perbagian(req: Request, r
         const endDate = req.query.endDate == undefined ? null : String(req.query.endDate)
         const statusReq = req.query.statusKembali == undefined ? null : String(req.query.statusKembali)
 
-        const date1input = startDate ?? "01-2024";
+        const dateNow = new Date();
+
+        const date1input = startDate ?? `01-${dateNow.getFullYear()}`;
         const [month1, year1] = date1input.split("-");
         const date1 = new Date(`${year1}-${month1}-01`);
 
         const formattedStartDate = new Intl.DateTimeFormat("id-ID", { year: "numeric", month: "long" }).format(date1);
 
-        const date2input = endDate ?? "12-2024"; // Format MM-YY
+        const date2input = endDate ?? `12-${dateNow.getFullYear()}`; // Format MM-YY
         const [month2, year2] = date2input.split("-");
         const date2 = new Date(`${year2}-${month2}-01`); // Mengonversi ke Date
 

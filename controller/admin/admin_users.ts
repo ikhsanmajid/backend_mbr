@@ -202,7 +202,7 @@ export async function update_user(req: Request, res: Response, next: NextFunctio
     }
 
     try {
-        
+
         const postData = {
             id: req.params.id,
             nik: req.body?.nik == undefined ? undefined : req.body?.nik,
@@ -225,6 +225,31 @@ export async function update_user(req: Request, res: Response, next: NextFunctio
         } else {
             throw user
         }
+    } catch (error) {
+        return next(error)
+    }
+}
+
+export async function hash_password_generate(req: Request, res: Response, next: NextFunction) {
+    async function hash_password(password: string): Promise<string | null> {
+        if (password == "") {
+            return null
+        }
+
+        const hashed = await bcrypt.hash(password, 10)
+        return hashed
+    }
+
+    try {
+
+        const postData = {
+            password: req.body?.password == undefined ? undefined : await hash_password(req.body?.password),
+        }
+
+        return res.status(200).json({
+            password: postData.password
+        })
+
     } catch (error) {
         return next(error)
     }
@@ -333,7 +358,7 @@ export async function update_password(req: Request, res: Response, next: NextFun
 
     try {
         //console.log(res.locals)
-        
+
         // const postData = {
         //     id: Number(req.params.id),
         //     password: req.body?.password == undefined ? undefined : req.body?.password,

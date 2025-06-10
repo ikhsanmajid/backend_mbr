@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model users {
-  id Int @unique @default(autoincrement()) @db.UnsignedInt
+  id Int @unique @default(autoincrement()) @db.Integer
   nik String @unique @db.VarChar(5)
   nama String @db.VarChar(255)
   email String @unique @db.VarChar(255)
@@ -29,15 +29,15 @@ model users {
 
 
 model permintaan {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
-  idCreated Int @db.UnsignedInt
-  idBagianCreated Int @db.UnsignedInt
-  timeCreated DateTime? @db.DateTime()
+  id BigInt @id @default(autoincrement())  @db.BigInt
+  idCreated Int  @db.Integer
+  idBagianCreated Int  @db.Integer
+  timeCreated DateTime? @db.Timestamp()
   status Konfirmasi @default(PENDING)
   reason String?
   used Boolean @default(false)
-  idConfirmed Int? @db.UnsignedInt
-  timeConfirmed DateTime? @db.DateTime()
+  idConfirmed Int? @db.Integer
+  timeConfirmed DateTime? @db.Timestamp()
 
   idDetailPermintanMBR detailpermintaanmbr[]
   
@@ -47,10 +47,10 @@ model permintaan {
 }
 
 model bagian {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
+  id Int @id @default(autoincrement()) @db.Integer
   namaBagian String @unique @db.VarChar(255)
   isActive Boolean
-  idJenisBagian Int @db.UnsignedInt
+  idJenisBagian Int @db.Integer
 
   idJenisBagianFK jenis_bagian @relation(fields: [idJenisBagian], references: [id])
   idBagianJabatan bagianonjabatan[]
@@ -59,14 +59,14 @@ model bagian {
 }
 
 model jenis_bagian {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
+  id Int @id @default(autoincrement()) @db.Integer
   namaJenisBagian String @unique @db.VarChar(255)
 
   idBagian bagian[]
 }
 
 model jabatan {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
+  id Int @id @default(autoincrement()) @db.Integer
   namaJabatan String @unique @db.VarChar(255)
   isActive Boolean
 
@@ -74,9 +74,9 @@ model jabatan {
 }
 
 model bagianonjabatan {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
-  idBagian Int @db.UnsignedInt
-  idJabatan Int @db.UnsignedInt
+  id Int @id @default(autoincrement()) @db.Integer
+  idBagian Int @db.Integer
+  idJabatan Int @db.Integer
 
   idUsersonBagianonJabatan usersonbagianonjabatan[]
 
@@ -87,9 +87,9 @@ model bagianonjabatan {
 }
 
 model usersonbagianonjabatan {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
-  idBagianJabatan Int @db.UnsignedInt
-  idUsers Int @db.UnsignedInt
+  id Int @id @default(autoincrement()) @db.Integer
+  idBagianJabatan Int @db.Integer
+  idUsers Int @db.Integer
 
   idUsersFK users @relation(fields: [idUsers], references: [id], onDelete: Cascade)
   idBagianJabatanFK bagianonjabatan @relation(fields: [idBagianJabatan], references: [id], onDelete: Cascade)
@@ -98,10 +98,10 @@ model usersonbagianonjabatan {
 }
 
 model produk {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
+  id Int @id @default(autoincrement()) @db.Integer
   namaProduk String @db.VarChar(255)
-  idKategori Int @db.UnsignedInt
-  idBagian Int @db.UnsignedInt
+  idKategori Int @db.Integer
+  idBagian Int @db.Integer
   isActive Boolean @default(true)
   
   idKategoriFK kategori @relation(fields: [idKategori], references: [id])
@@ -114,7 +114,7 @@ model produk {
 }
 
 model kategori {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
+  id Int @id @default(autoincrement()) @db.Integer
   namaKategori String @unique @db.VarChar(255)
   startingNumber String @db.VarChar(6)
   
@@ -122,13 +122,13 @@ model kategori {
 }
 
 model detailpermintaanmbr {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
-  group_id Int @db.Int
-  idPermintaanMbr Int @db.UnsignedInt
-  idProduk Int @db.UnsignedInt
+  id BigInt @id @default(autoincrement()) @db.BigInt
+  group_id Int @db.Integer
+  idPermintaanMbr BigInt @db.BigInt
+  idProduk Int @db.Integer
   nomorMBR String @db.VarChar(36)
   tipeMBR TipeMBR @default(PO)
-  jumlah Int @db.Int
+  jumlah Int @db.Integer
 
   idNomorMBR nomormbr[]
 
@@ -138,14 +138,14 @@ model detailpermintaanmbr {
 }
 
 model nomormbr {
-  id Int @id @default(autoincrement()) @db.UnsignedInt
-  idDetailPermintaan Int @db.UnsignedInt
+  id BigInt @id @default(autoincrement()) @db.BigInt
+  idDetailPermintaan BigInt @db.BigInt
   nomorUrut String @db.VarChar(6)
   status Status @default(ACTIVE)
-  idUserKembali Int? @db.UnsignedInt
-  tahun Int @db.Year
-  tanggalKembali DateTime? @db.DateTime()
-  idUserTerima Int? @db.UnsignedInt
+  idUserKembali Int? @db.Integer
+  tahun Int @db.Integer
+  tanggalKembali DateTime? @db.Timestamp()
+  idUserTerima Int? @db.Integer
   nomorBatch String? @db.VarChar(10)
 
   idUserKembaliMBRFK users? @relation("idUserKembali", fields: [idUserKembali], references: [id])

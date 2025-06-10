@@ -49,6 +49,7 @@ exports.find_all = find_all;
 exports.find_user = find_user;
 exports.detail_user = detail_user;
 exports.update_user = update_user;
+exports.hash_password_generate = hash_password_generate;
 exports.hard_delete_user = hard_delete_user;
 exports.delete_user_department_employment = delete_user_department_employment;
 exports.update_user_department_employment = update_user_department_employment;
@@ -275,6 +276,31 @@ function update_user(req, res, next) {
             else {
                 throw user;
             }
+        }
+        catch (error) {
+            return next(error);
+        }
+    });
+}
+function hash_password_generate(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
+        function hash_password(password) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (password == "") {
+                    return null;
+                }
+                const hashed = yield bcrypt.hash(password, 10);
+                return hashed;
+            });
+        }
+        try {
+            const postData = {
+                password: ((_a = req.body) === null || _a === void 0 ? void 0 : _a.password) == undefined ? undefined : yield hash_password((_b = req.body) === null || _b === void 0 ? void 0 : _b.password),
+            };
+            return res.status(200).json({
+                password: postData.password
+            });
         }
         catch (error) {
             return next(error);

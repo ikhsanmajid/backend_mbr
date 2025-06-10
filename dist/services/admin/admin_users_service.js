@@ -9,6 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.get_admin_mail = get_admin_mail;
+exports.get_dco_mail = get_dco_mail;
 exports.add_user_model = add_user_model;
 exports.check_email_model = check_email_model;
 exports.check_nik_model = check_nik_model;
@@ -25,6 +27,76 @@ exports.update_user_department_model = update_user_department_model;
 exports.add_user_department_model = add_user_department_model;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
+function get_admin_mail() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const getMailList = yield prisma.users.findMany({
+                select: {
+                    id: true,
+                    email: true
+                },
+                where: {
+                    isActive: true,
+                    isAdmin: true,
+                    NOT: {
+                        jabatanBagian: {
+                            some: {
+                                idBagianJabatanFK: {
+                                    idJabatanFK: {
+                                        OR: [{
+                                                namaJabatan: "Manager"
+                                            }, {
+                                                namaJabatan: "Officer"
+                                            }]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            return { data: getMailList };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
+function get_dco_mail() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const getMailList = yield prisma.users.findMany({
+                select: {
+                    id: true,
+                    email: true,
+                },
+                where: {
+                    AND: [
+                        {
+                            jabatanBagian: {
+                                some: {
+                                    idBagianJabatanFK: {
+                                        AND: [
+                                            { idBagianFK: { namaBagian: "Document Control" } },
+                                            { idJabatanFK: { namaJabatan: "Officer" } }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            isActive: true
+                        }
+                    ]
+                }
+            });
+            return { data: getMailList };
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
 function add_user_model(data) {
     return __awaiter(this, void 0, void 0, function* () {
         try {

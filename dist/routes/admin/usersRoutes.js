@@ -57,4 +57,5 @@ router.delete("/deleteUser/:id", [authorization_1.check_is_authorized_admin], ad
 router.delete("/deleteJabatan/:id", [authorization_1.check_is_authorized_admin], admin_users.delete_user_department_employment); // sudah dokumentasi
 // update password
 router.patch("/updatePassword/:id", [authorization_1.get_user_id], admin_users.update_password); // sudah dokumentasi
+//router.post("/hashPassword", admin_users.hash_password_generate)
 exports.default = router;
