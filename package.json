@@ -30,6 +30,7 @@
         "passport-http-bearer": "^1.0.1",
         "passport-local": "^1.0.0",
         "prisma": "^5.16.1",
+        "vercel": "^42.3.0",
         "winston": "^3.13.0"
     },
     "name": "mbr",
