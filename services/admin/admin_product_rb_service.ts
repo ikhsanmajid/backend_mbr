@@ -414,6 +414,8 @@ export async function accept_permintaan(data: { id: string, action: string, time
 
             return result
 
+        }, {
+            timeout: 60000
         })
 
         return { data: resultAcceptPermintaan }
