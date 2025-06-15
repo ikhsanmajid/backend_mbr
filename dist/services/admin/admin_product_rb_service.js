@@ -255,7 +255,9 @@ function accept_permintaan(data) {
                     });
                 }
                 return result;
-            }));
+            }), {
+                timeout: 60000
+            });
             return { data: resultAcceptPermintaan };
         }
         catch (error) {
@@ -868,9 +870,10 @@ function get_rb_return_by_product(id, status, numberFind, limit, offset, startDa
         }
     });
 }
-//ANCHOR - Get Permintaan RB Return Berdasarkan Produk
+//ANCHOR - Get Permintaan RB Return Berdasarkan Bagian
 function get_rb_return_by_bagian(id, status, numberFind, limit, offset, startDate, endDate) {
     return __awaiter(this, void 0, void 0, function* () {
+        //console.log(status)
         try {
             let query = `SELECT
             d."idPermintaanMbr" AS id,
@@ -906,10 +909,10 @@ function get_rb_return_by_bagian(id, status, numberFind, limit, offset, startDat
             p."namaProduk", r."timeCreated", d."idProduk", d."idPermintaanMbr"          
         HAVING
             1=1 
-            ${(numberFind !== null) ? `AND SUM(CASE WHEN CAST(n."nomorUrut" AS TEXT) LIKE '%${numberFind}%' THEN 1 ELSE 0 END) > 0` : ""}
-            ${(status === "belum") ? "AND \"RBBelumKembali\" > 0" : ""}
-            ${(status === "outstanding") ? "AND \"JumlahOutstanding\" > 0" : ""}
-        ${limit != null && offset != null ? `LIMIT ${limit} OFFSET ${offset}` : ''}`;
+            ${(numberFind !== null) ? ` AND SUM(CASE WHEN CAST(n."nomorUrut" AS TEXT) LIKE '%${numberFind}%' THEN 1 ELSE 0 END) > 0` : ""}
+            ${(status === "belum") ? ` AND "RBBelumKembali" > 0` : ""}
+            ${(status === "outstanding") ? ` AND COUNT( CASE WHEN ( n."status" = 'KEMBALI' OR n."status" = 'BATAL' ) AND n."idUserTerima" IS NULL THEN 1 END ) > 0` : ""}
+        ${limit != null && offset != null ? ` LIMIT ${limit} OFFSET ${offset}` : ''}`;
             const getRequest = yield prisma.$queryRaw(client_1.Prisma.sql([query]));
             const countQuery = `SELECT COUNT(*) AS "count" FROM (
             SELECT
@@ -964,6 +967,7 @@ function get_rb_return_by_bagian(id, status, numberFind, limit, offset, startDat
             return { data: result, count: getCount[0].count };
         }
         catch (error) {
+            console.log(error);
             throw error;
         }
     });
