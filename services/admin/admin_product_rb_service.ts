@@ -1074,7 +1074,7 @@ export async function get_rb_return_by_product(id: number, status: string | null
 
 //ANCHOR - Get Permintaan RB Return Berdasarkan Bagian
 export async function get_rb_return_by_bagian(id: number, status: string | null, numberFind: string | null, limit: number | null, offset: number | null, startDate: string | null, endDate: string | null): Promise<ResultModel<ReturnRBResult[] | null> | { data: string }> {
-    console.log(status)
+    //console.log(status)
     try {
         let query = `SELECT
             d."idPermintaanMbr" AS id,
@@ -1112,7 +1112,7 @@ export async function get_rb_return_by_bagian(id: number, status: string | null,
             1=1 
             ${(numberFind !== null) ? ` AND SUM(CASE WHEN CAST(n."nomorUrut" AS TEXT) LIKE '%${numberFind}%' THEN 1 ELSE 0 END) > 0` : ""}
             ${(status === "belum") ? ` AND "RBBelumKembali" > 0` : ""}
-            ${(status === "outstanding") ? ` AND COUNT(CASE WHEN (n."status" = 'KEMBALI' OR n."status" = 'BATAL') AND n."idUserTerima" IS NULL THEN 1 END) > 0` : ""}
+            ${(status === "outstanding") ? ` AND COUNT( CASE WHEN ( n."status" = 'KEMBALI' OR n."status" = 'BATAL' ) AND n."idUserTerima" IS NULL THEN 1 END ) > 0` : ""}
         ${limit != null && offset != null ? ` LIMIT ${limit} OFFSET ${offset}` : ''}`
 
         const getRequest = await prisma.$queryRaw<ReturnRBQuery[]>(Prisma.sql([query]))
