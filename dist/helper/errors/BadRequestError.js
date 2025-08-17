@@ -8,7 +8,7 @@ class BadRequestError extends custom_error_1.CustomError {
         super(message || "Bad Request");
         this._code = statusCode || BadRequestError._statusCode;
         this._logger = logger || true;
-        this._context = (params === null || params === void 0 ? void 0 : params.context) || {};
+        this._context = params?.context || {};
         Object.setPrototypeOf(this, BadRequestError.prototype);
     }
     get errors() {

@@ -32,15 +32,6 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get_kategori = get_kategori;
 exports.check_kategori = check_kategori;
@@ -55,319 +46,298 @@ exports.edit_product = edit_product;
 const adminProduct = __importStar(require("../../services/admin/admin_product_service"));
 const adminProductRB = __importStar(require("../../services/admin/admin_product_rb_service"));
 //ANCHOR - Get Kategori
-function get_kategori(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const data = {
-                limit: req.query.limit == undefined ? null : Number(req.query.limit),
-                offset: req.query.offset == undefined ? null : Number(req.query.offset),
-                search_kategori: req.query.search_kategori == undefined ? null : String(req.query.search_kategori)
-            };
-            const kategori = yield adminProduct.get_kategori(data);
-            if ('data' in kategori && 'count' in kategori) {
-                res.status(200).json({
-                    data: kategori.data,
-                    message: "Data Kategori",
-                    count: kategori.count,
-                    status: "success"
-                });
-            }
-            else {
-                throw kategori;
-            }
+async function get_kategori(req, res, next) {
+    try {
+        const data = {
+            limit: req.query.limit == undefined ? null : Number(req.query.limit),
+            offset: req.query.offset == undefined ? null : Number(req.query.offset),
+            search_kategori: req.query.search_kategori == undefined ? null : String(req.query.search_kategori)
+        };
+        const kategori = await adminProduct.get_kategori(data);
+        if ('data' in kategori && 'count' in kategori) {
+            res.status(200).json({
+                data: kategori.data,
+                message: "Data Kategori",
+                count: kategori.count,
+                status: "success"
+            });
         }
-        catch (error) {
-            return next(error);
+        else {
+            throw kategori;
         }
-    });
+    }
+    catch (error) {
+        return next(error);
+    }
 }
 //ANCHOR - Check Kategori
-function check_kategori(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { nama_kategori } = req.query;
-            const decodedNamaKategori = decodeURIComponent(nama_kategori);
-            const kategori = yield adminProductRB.check_category({ namaKategori: decodedNamaKategori });
-            if ('data' in kategori) {
-                if (kategori.data > 0) {
-                    return res.status(200).json({
-                        message: "exist",
-                        status: "success"
-                    });
-                }
-                else {
-                    return res.status(200).json({
-                        message: "not exist",
-                        status: "success"
-                    });
-                }
+async function check_kategori(req, res, next) {
+    try {
+        const { nama_kategori } = req.query;
+        const decodedNamaKategori = decodeURIComponent(nama_kategori);
+        const kategori = await adminProductRB.check_category({ namaKategori: decodedNamaKategori });
+        if ('data' in kategori) {
+            if (kategori.data > 0) {
+                return res.status(200).json({
+                    message: "exist",
+                    status: "success"
+                });
             }
             else {
-                throw kategori;
+                return res.status(200).json({
+                    message: "not exist",
+                    status: "success"
+                });
             }
         }
-        catch (error) {
-            return next(error);
+        else {
+            throw kategori;
         }
-    });
+    }
+    catch (error) {
+        return next(error);
+    }
 }
 //ANCHOR - Tambah Kategori
-function add_category(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a;
-        try {
-            let postData = {
-                namaKategori: String(req.body.nama_kategori),
-                startingNumber: String(req.body.starting_number)
-            };
-            if (((_a = postData.startingNumber) === null || _a === void 0 ? void 0 : _a.match(/\d{6}/)) == null) {
-                throw new Error("Starting Number Harus 6 digit");
-            }
-            const category = yield adminProductRB.add_category(postData);
-            if ('data' in category) {
-                res.status(200).json({
-                    data: category.data,
-                    message: "Tambah Kategori Berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw category;
-            }
+async function add_category(req, res, next) {
+    try {
+        let postData = {
+            namaKategori: String(req.body.nama_kategori),
+            startingNumber: String(req.body.starting_number)
+        };
+        if (postData.startingNumber?.match(/\d{6}/) == null) {
+            throw new Error("Starting Number Harus 6 digit");
         }
-        catch (error) {
-            return next(error);
+        const category = await adminProductRB.add_category(postData);
+        if ('data' in category) {
+            res.status(200).json({
+                data: category.data,
+                message: "Tambah Kategori Berhasil",
+                status: "success"
+            });
         }
-    });
+        else {
+            throw category;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
 }
 //ANCHOR - Update Kategori
-function update_kategori(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { id } = req.params;
-            const { nama_kategori, starting_number } = req.body;
-            const decodedNamaKategori = decodeURIComponent(nama_kategori);
-            const putData = {
-                namaKategori: decodedNamaKategori,
-                startingNumber: starting_number
-            };
-            if (nama_kategori == "") {
-                return res.status(400).json({
-                    message: "Data Tidak Boleh Kosong",
-                    status: "error",
-                    type: "error"
-                });
-            }
-            if (starting_number == "") {
-                return res.status(400).json({
-                    message: "Data Tidak Boleh Kosong",
-                    status: "error",
-                    type: "error"
-                });
-            }
-            const kategori = yield adminProductRB.update_kategori(Number(id), putData);
-            if ('data' in kategori) {
-                return res.status(200).json({
-                    message: "Update Berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw kategori;
-            }
+async function update_kategori(req, res, next) {
+    try {
+        const { id } = req.params;
+        const { nama_kategori, starting_number } = req.body;
+        const decodedNamaKategori = decodeURIComponent(nama_kategori);
+        const putData = {
+            namaKategori: decodedNamaKategori,
+            startingNumber: starting_number
+        };
+        if (nama_kategori == "") {
+            return res.status(400).json({
+                message: "Data Tidak Boleh Kosong",
+                status: "error",
+                type: "error"
+            });
         }
-        catch (error) {
-            return next(error);
+        if (starting_number == "") {
+            return res.status(400).json({
+                message: "Data Tidak Boleh Kosong",
+                status: "error",
+                type: "error"
+            });
         }
-    });
+        const kategori = await adminProductRB.update_kategori(Number(id), putData);
+        if ('data' in kategori) {
+            return res.status(200).json({
+                message: "Update Berhasil",
+                status: "success"
+            });
+        }
+        else {
+            throw kategori;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
 }
 //ANCHOR - Delete Kategori
-function delete_category(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { id } = req.params;
-            const kategori = yield adminProductRB.delete_kategori(Number(id));
-            if ('data' in kategori) {
-                return res.status(200).json({
-                    message: "Delete Berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw kategori;
-            }
+async function delete_category(req, res, next) {
+    try {
+        const { id } = req.params;
+        const kategori = await adminProductRB.delete_kategori(Number(id));
+        if ('data' in kategori) {
+            return res.status(200).json({
+                message: "Delete Berhasil",
+                status: "success"
+            });
         }
-        catch (error) {
-            return next(error);
+        else {
+            throw kategori;
         }
-    });
+    }
+    catch (error) {
+        return next(error);
+    }
 }
 //ANCHOR - Tambah produk
-function add_product(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { nama_produk, id_bagian, id_kategori } = req.body;
-            const decodedNamaProduk = decodeURIComponent(nama_produk);
-            let postData = {
-                namaProduk: decodedNamaProduk,
-                idBagian: Number(id_bagian),
-                idKategori: Number(id_kategori)
-            };
-            if (nama_produk == "" || id_bagian == "" || id_kategori == "") {
-                return res.status(400).json({
-                    message: "Data Tidak Boleh Kosong",
-                    status: "error",
-                    type: "error"
-                });
-            }
-            const product = yield adminProduct.add_product(postData);
-            if ('data' in product) {
-                res.status(200).json({
-                    data: product.data,
-                    message: "Tambah Produk Berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw product;
-            }
+async function add_product(req, res, next) {
+    try {
+        const { nama_produk, id_bagian, id_kategori } = req.body;
+        const decodedNamaProduk = decodeURIComponent(nama_produk);
+        let postData = {
+            namaProduk: decodedNamaProduk,
+            idBagian: Number(id_bagian),
+            idKategori: Number(id_kategori)
+        };
+        if (nama_produk == "" || id_bagian == "" || id_kategori == "") {
+            return res.status(400).json({
+                message: "Data Tidak Boleh Kosong",
+                status: "error",
+                type: "error"
+            });
         }
-        catch (error) {
-            return next(error);
+        const product = await adminProduct.add_product(postData);
+        if ('data' in product) {
+            res.status(200).json({
+                data: product.data,
+                message: "Tambah Produk Berhasil",
+                status: "success"
+            });
         }
-    });
+        else {
+            throw product;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
 }
 // ANCHOR - Check Product
-function get_product(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { id_bagian, nama_produk, status, limit, offset } = req.query;
-            const decodedNamaProduk = decodeURIComponent(nama_produk);
-            const statusProduk = (status) => {
-                if (status == "active") {
-                    return true;
-                }
-                else if (status == "inactive") {
-                    return false;
-                }
-                else if (typeof status == "undefined") {
-                    return null;
-                }
-                else {
-                    return null;
-                }
-            };
-            let getData = {
-                idBagian: res.locals.userinfo.isAdmin == true ? id_bagian == undefined ? null : Number(id_bagian) : res.locals.idBagian,
-                namaProduk: nama_produk == undefined || nama_produk == "" ? null : decodedNamaProduk.toString(),
-                status: statusProduk(status),
-                limit: limit == undefined ? null : Number(limit),
-                offset: offset == undefined ? null : Number(offset)
-            };
-            const product = yield adminProduct.get_product_by_bagian(getData);
-            if ('data' in product && 'count' in product) {
-                return res.status(200).json({
-                    data: product.data,
-                    message: "Data Produk",
-                    status: "success",
-                    count: product.count,
-                });
+async function get_product(req, res, next) {
+    try {
+        const { id_bagian, nama_produk, status, limit, offset } = req.query;
+        const decodedNamaProduk = decodeURIComponent(nama_produk);
+        const statusProduk = (status) => {
+            if (status == "active") {
+                return true;
+            }
+            else if (status == "inactive") {
+                return false;
+            }
+            else if (typeof status == "undefined") {
+                return null;
             }
             else {
-                throw product;
+                return null;
             }
+        };
+        let getData = {
+            idBagian: res.locals.userinfo.isAdmin == true ? id_bagian == undefined ? null : Number(id_bagian) : res.locals.idBagian,
+            namaProduk: nama_produk == undefined || nama_produk == "" ? null : decodedNamaProduk.toString(),
+            status: statusProduk(status),
+            limit: limit == undefined ? null : Number(limit),
+            offset: offset == undefined ? null : Number(offset)
+        };
+        const product = await adminProduct.get_product_by_bagian(getData);
+        if ('data' in product && 'count' in product) {
+            return res.status(200).json({
+                data: product.data,
+                message: "Data Produk",
+                status: "success",
+                count: product.count,
+            });
         }
-        catch (error) {
-            return next(error);
+        else {
+            throw product;
         }
-    });
+    }
+    catch (error) {
+        return next(error);
+    }
 }
 //ANCHOR - Check Product Exist
-function check_product(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { nama_produk, id_bagian } = req.query;
-            const decodedNamaProduk = decodeURIComponent(nama_produk);
-            const product = yield adminProduct.check_product({ namaProduk: decodedNamaProduk, idBagian: id_bagian });
-            if ('count' in product) {
-                console.log({ count: product.count, data: { nama_produk, id_bagian } });
-                if (product.count > 0) {
-                    return res.status(200).json({
-                        message: "exist",
-                        status: "success"
-                    });
-                }
-                else {
-                    return res.status(200).json({
-                        message: "not exist",
-                        status: "success"
-                    });
-                }
+async function check_product(req, res, next) {
+    try {
+        const { nama_produk, id_bagian } = req.query;
+        const decodedNamaProduk = decodeURIComponent(nama_produk);
+        const product = await adminProduct.check_product({ namaProduk: decodedNamaProduk, idBagian: id_bagian });
+        if ('count' in product) {
+            //console.log({count: product.count, data: {nama_produk, id_bagian}})
+            if (product.count > 0) {
+                return res.status(200).json({
+                    message: "exist",
+                    status: "success"
+                });
             }
             else {
-                throw product;
+                return res.status(200).json({
+                    message: "not exist",
+                    status: "success"
+                });
             }
         }
-        catch (error) {
-            return next(error);
+        else {
+            throw product;
         }
-    });
+    }
+    catch (error) {
+        return next(error);
+    }
 }
 //ANCHOR - Delete Product
-function delete_product(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { id } = req.params;
-            const product = yield adminProduct.delete_product(Number(id));
-            if ('data' in product) {
-                return res.status(200).json({
-                    message: "Delete Berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw product;
-            }
+async function delete_product(req, res, next) {
+    try {
+        const { id } = req.params;
+        const product = await adminProduct.delete_product(Number(id));
+        if ('data' in product) {
+            return res.status(200).json({
+                message: "Delete Berhasil",
+                status: "success"
+            });
         }
-        catch (error) {
-            return next(error);
+        else {
+            throw product;
         }
-    });
+    }
+    catch (error) {
+        return next(error);
+    }
 }
 //ANCHOR - Edit Product
-function edit_product(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { id } = req.params;
-            const { nama_produk, id_bagian, id_kategori, is_active } = req.body;
-            const decodedNamaProduk = decodeURIComponent(nama_produk);
-            let putData = {
-                namaProduk: decodedNamaProduk,
-                idBagian: Number(id_bagian),
-                idKategori: Number(id_kategori),
-                isActive: is_active == "1" ? true : false
-            };
-            //console.log("data 1", is_active)
-            if (nama_produk == "" || id_bagian == "" || id_kategori == "" || is_active == "") {
-                return res.status(400).json({
-                    message: "Data Tidak Boleh Kosong",
-                    status: "error",
-                    type: "error"
-                });
-            }
-            const product = yield adminProduct.edit_product(Number(id), putData);
-            if ('data' in product) {
-                return res.status(200).json({
-                    message: "Edit Berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw product;
-            }
+async function edit_product(req, res, next) {
+    try {
+        const { id } = req.params;
+        const { nama_produk, id_bagian, id_kategori, is_active } = req.body;
+        const decodedNamaProduk = decodeURIComponent(nama_produk);
+        let putData = {
+            namaProduk: decodedNamaProduk,
+            idBagian: Number(id_bagian),
+            idKategori: Number(id_kategori),
+            isActive: is_active == "1" ? true : false
+        };
+        //console.log("data 1", is_active)
+        if (nama_produk == "" || id_bagian == "" || id_kategori == "" || is_active == "") {
+            return res.status(400).json({
+                message: "Data Tidak Boleh Kosong",
+                status: "error",
+                type: "error"
+            });
         }
-        catch (error) {
-            return next(error);
+        const product = await adminProduct.edit_product(Number(id), putData);
+        if ('data' in product) {
+            return res.status(200).json({
+                message: "Edit Berhasil",
+                status: "success"
+            });
         }
-    });
+        else {
+            throw product;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
 }

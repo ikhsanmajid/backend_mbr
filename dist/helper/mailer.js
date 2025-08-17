@@ -5,13 +5,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.transporter = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
+dotenv_1.default.config({ path: path_1.default.resolve(__dirname, '../.env.local'), override: true });
 exports.transporter = nodemailer_1.default.createTransport({
-    service: 'gmail',
+    host: process.env.MAILER_URL,
+    port: process.env.MAILER_PORT,
     auth: {
         user: process.env.USER_MAIL,
-        pass: process.env.PASS_MAIL
+        pass: process.env.PASSWORD_MAIL
     },
+    secure: false,
+    requireTLS: true,
     tls: {
-        rejectUnauthorized: false
+        servername: process.env.MAILER_URL
     }
 });

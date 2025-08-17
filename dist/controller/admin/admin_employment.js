@@ -32,15 +32,6 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.add_employment = add_employment;
 exports.find_all = find_all;
@@ -51,168 +42,153 @@ exports.update_employment = update_employment;
 exports.hard_delete_employment = hard_delete_employment;
 const adminEmployment = __importStar(require("../../services/admin/admin_employment_service"));
 const console_1 = require("console");
-function add_employment(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            let postData = {
-                namaJabatan: req.body.nama_jabatan,
-                isActive: req.body.is_active == undefined ? true : req.body.is_active === "true" ? true : false
-            };
-            const employment = yield adminEmployment.add_employment_model(postData);
-            if ("data" in employment) {
+async function add_employment(req, res, next) {
+    try {
+        let postData = {
+            namaJabatan: req.body.nama_jabatan,
+            isActive: req.body.is_active == undefined ? true : req.body.is_active === "true" ? true : false
+        };
+        const employment = await adminEmployment.add_employment_model(postData);
+        if ("data" in employment) {
+            res.status(200).json({
+                data: employment.data
+            });
+        }
+        else {
+            throw employment;
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+}
+async function find_all(req, res, next) {
+    try {
+        const getData = {
+            isActive: req.query.is_active == undefined ? undefined : req.query.is_active === "true" ? true : false,
+            limit: req.query.limit == undefined ? undefined : req.query.limit,
+            offset: req.query.offset == undefined ? undefined : req.query.offset
+        };
+        const employment = await adminEmployment.find_all_employment_model(getData);
+        if ("data" in employment) {
+            res.status(200).json({
+                data: employment.data,
+                count: employment.count
+            });
+        }
+        else {
+            throw employment;
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+}
+async function find_employment(req, res, next) {
+    try {
+        const getData = {
+            namaBagian: req.query.nama_jabatan,
+            isActive: req.query.is_active == undefined ? undefined : req.query.is_active === "true" ? true : false
+        };
+        const employment = await adminEmployment.find_employment_model(getData);
+        if ("data" in employment) {
+            res.status(200).json({
+                data: employment.data
+            });
+        }
+        else {
+            throw console_1.error;
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+}
+async function find_fixed_employment(req, res, next) {
+    try {
+        const getData = {
+            namaJabatan: req.query.nama_jabatan,
+        };
+        const employment = await adminEmployment.find_employment_fixed_model(getData);
+        if ("data" in employment) {
+            if (employment.data != null) {
                 res.status(200).json({
-                    data: employment.data
+                    message: "exist"
                 });
             }
             else {
-                throw employment;
-            }
-        }
-        catch (error) {
-            next(error);
-        }
-    });
-}
-function find_all(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const getData = {
-                isActive: req.query.is_active == undefined ? undefined : req.query.is_active === "true" ? true : false,
-                limit: req.query.limit == undefined ? undefined : req.query.limit,
-                offset: req.query.offset == undefined ? undefined : req.query.offset
-            };
-            const employment = yield adminEmployment.find_all_employment_model(getData);
-            if ("data" in employment) {
                 res.status(200).json({
-                    data: employment.data,
-                    count: employment.count
+                    message: "not exist"
                 });
             }
-            else {
-                throw employment;
-            }
         }
-        catch (error) {
-            next(error);
+        else {
+            throw employment;
         }
-    });
+    }
+    catch (error) {
+        return next(error);
+    }
 }
-function find_employment(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const getData = {
-                namaBagian: req.query.nama_jabatan,
-                isActive: req.query.is_active == undefined ? undefined : req.query.is_active === "true" ? true : false
-            };
-            const employment = yield adminEmployment.find_employment_model(getData);
-            if ("data" in employment) {
-                res.status(200).json({
-                    data: employment.data
-                });
-            }
-            else {
-                throw console_1.error;
-            }
+async function detail_employment(req, res, next) {
+    try {
+        const paramData = {
+            id: parseInt(req.params.id)
+        };
+        const employment = await adminEmployment.get_detail_employment_model(paramData);
+        if ("data" in employment) {
+            res.status(200).json({
+                data: employment.data
+            });
         }
-        catch (error) {
-            next(error);
+        else {
+            throw console_1.error;
         }
-    });
+    }
+    catch (error) {
+        next(error);
+    }
 }
-function find_fixed_employment(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const getData = {
-                namaJabatan: req.query.nama_jabatan,
-            };
-            const employment = yield adminEmployment.find_employment_fixed_model(getData);
-            if ("data" in employment) {
-                if (employment.data != null) {
-                    res.status(200).json({
-                        message: "exist"
-                    });
-                }
-                else {
-                    res.status(200).json({
-                        message: "not exist"
-                    });
-                }
-            }
-            else {
-                throw employment;
-            }
+async function update_employment(req, res, next) {
+    try {
+        const postData = {
+            id: req.params.id,
+            namaJabatan: req.body?.nama_jabatan == undefined ? undefined : req.body?.nama_jabatan,
+            isActive: req.body?.is_active == undefined ? undefined : req.body?.is_active === "true" ? true : false
+        };
+        //console.log(postData)
+        const employment = await adminEmployment.update_employment_model(postData);
+        if ("data" in employment) {
+            res.status(200).json({
+                data: employment?.data,
+                message: "update jabatan berhasil"
+            });
         }
-        catch (error) {
-            return next(error);
+        else {
+            throw console_1.error;
         }
-    });
+    }
+    catch (error) {
+        next(error);
+    }
 }
-function detail_employment(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const paramData = {
-                id: parseInt(req.params.id)
-            };
-            const employment = yield adminEmployment.get_detail_employment_model(paramData);
-            if ("data" in employment) {
-                res.status(200).json({
-                    data: employment.data
-                });
-            }
-            else {
-                throw console_1.error;
-            }
+async function hard_delete_employment(req, res, next) {
+    try {
+        const paramData = {
+            id: parseInt(req.params.id)
+        };
+        const employment = await adminEmployment.delete_employment_model(paramData);
+        if ("data" in employment) {
+            res.status(200).json({
+                data: employment.data,
+                message: "delete jabatan berhasil"
+            });
         }
-        catch (error) {
-            next(error);
+        else {
+            throw console_1.error;
         }
-    });
-}
-function update_employment(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d;
-        try {
-            const postData = {
-                id: req.params.id,
-                namaJabatan: ((_a = req.body) === null || _a === void 0 ? void 0 : _a.nama_jabatan) == undefined ? undefined : (_b = req.body) === null || _b === void 0 ? void 0 : _b.nama_jabatan,
-                isActive: ((_c = req.body) === null || _c === void 0 ? void 0 : _c.is_active) == undefined ? undefined : ((_d = req.body) === null || _d === void 0 ? void 0 : _d.is_active) === "true" ? true : false
-            };
-            //console.log(postData)
-            const employment = yield adminEmployment.update_employment_model(postData);
-            if ("data" in employment) {
-                res.status(200).json({
-                    data: employment === null || employment === void 0 ? void 0 : employment.data,
-                    message: "update jabatan berhasil"
-                });
-            }
-            else {
-                throw console_1.error;
-            }
-        }
-        catch (error) {
-            next(error);
-        }
-    });
-}
-function hard_delete_employment(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const paramData = {
-                id: parseInt(req.params.id)
-            };
-            const employment = yield adminEmployment.delete_employment_model(paramData);
-            if ("data" in employment) {
-                res.status(200).json({
-                    data: employment.data,
-                    message: "delete jabatan berhasil"
-                });
-            }
-            else {
-                throw console_1.error;
-            }
-        }
-        catch (error) {
-            next(error);
-        }
-    });
+    }
+    catch (error) {
+        next(error);
+    }
 }

@@ -45,7 +45,8 @@
         "add-build": "git add dist",
         "test": "echo \"Error: no test specified\" && exit 1",
         "postinstall": "prisma generate",
-        "vercel-build": "prisma generate && prisma migrate deploy"
+        "vercel-build": "prisma generate && prisma migrate deploy",
+        "start": "node dist/index.js"
     },
     "pre-commit": [
         "ts.check",
