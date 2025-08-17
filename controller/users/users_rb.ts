@@ -97,7 +97,7 @@ export async function add_request(req: Request, res: Response, next: NextFunctio
 
                 transporter.sendMail(mailOptions, (error, info) => {
                     if (error) {
-                        console.log(error)
+                        throw error
                     }
                 })
             }
@@ -185,7 +185,7 @@ export async function edit_request(req: Request, res: Response, next: NextFuncti
 
                 transporter.sendMail(mailOptions, (error, info) => {
                     if (error) {
-                        console.log(error)
+                        throw error
                     }
                 })
             }

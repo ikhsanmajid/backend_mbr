@@ -77,7 +77,7 @@ export async function confirm_request(req: Request, res: Response, next: NextFun
 
                     transporter.sendMail(mailOptions, (error, info) => {
                         if (error) {
-                            console.log(error)
+                            throw error
                         }
                     })
                 }
@@ -121,7 +121,7 @@ export async function confirm_request(req: Request, res: Response, next: NextFun
 
                     transporter.sendMail(mailOptions, (error, info) => {
                         if (error) {
-                            console.log(error)
+                            throw error
                         }
                     })
                 }

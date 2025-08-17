@@ -357,19 +357,11 @@ export async function update_password(req: Request, res: Response, next: NextFun
     }
 
     try {
-        //console.log(res.locals)
-
-        // const postData = {
-        //     id: Number(req.params.id),
-        //     password: req.body?.password == undefined ? undefined : req.body?.password,
-        //     confirm_password: req.body?.confirm_password == undefined ? undefined : req.body?.confirm_password,
-        // }
-
         const id = Number(req.params.id)
         const password = req.body?.password
         const confirm_password = req.body?.confirm_password
 
-        console.log(id, password, confirm_password)
+        //console.log(id, password, confirm_password)
 
         if (res.locals.idUser != id) {
             return res.status(400).json({

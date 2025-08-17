@@ -8,7 +8,7 @@ import BadRequestError from "../helper/errors/BadRequestError";
 const jwt = jsonwebtoken
 
 async function generate_access_token(userinfo: any) {
-    const access_token = await jwt.sign(userinfo, process.env.TOKEN_SECRET!, { expiresIn: '3h' })
+    const access_token = await jwt.sign(userinfo, process.env.TOKEN_SECRET!, { expiresIn: '7h' })
     //console.log(access_token)
     return access_token
 }
@@ -79,7 +79,7 @@ export const check_access_token = (req: Request, res: Response, next: NextFuncti
                 }
 
             }
-            
+
             res.locals.userinfo = user
             return next()
 

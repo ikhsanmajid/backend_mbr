@@ -262,7 +262,7 @@ export async function check_product(req: Request, res: Response, next: NextFunct
 
 
         if ('count' in product!) {
-            console.log({count: product.count, data: {nama_produk, id_bagian}})
+            //console.log({count: product.count, data: {nama_produk, id_bagian}})
             if (product.count! > 0) {
                 return res.status(200).json({
                     message: "exist",
