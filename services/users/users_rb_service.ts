@@ -310,7 +310,8 @@ export async function get_request_by_bagian(data: { idBagian: number | null, yea
             r."idConfirmed", r."timeConfirmed", r."status", r."reason", r."used", ucr."nama", uc."nama", ucr."nik"
         ORDER BY 
             r."timeCreated" DESC
-        ${data.limit !== null && data.offset !== null ? `LIMIT ${data.limit} OFFSET ${data.offset}` : ''}`
+        ${data.limit !== null ? ` LIMIT ${data.limit}` : ''}
+        ${data.offset !== null ? ` OFFSET ${data.offset}` : ''}`
 
         const getRequest = await prisma.$queryRaw<RequestRB[]>(Prisma.sql([query]))
 

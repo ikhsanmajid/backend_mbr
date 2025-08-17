@@ -190,7 +190,7 @@ export async function edit_request(req: Request, res: Response, next: NextFuncti
                 })
             }
 
-            console.log(postData.data)
+            //console.log(postData.data)
             
             return res.status(200).json({
                 data: request.data,
@@ -255,7 +255,7 @@ export async function get_list_request(req: Request, res: Response, next: NextFu
 
         const request = await usersRB.get_request_by_bagian(data)
 
-        console.log(data)
+        //console.log(data)
 
         if ('data' in request! && 'count' in request!) {
             return res.status(200).json({
@@ -475,7 +475,7 @@ export async function generate_report_serah_terima(req: Request, res: Response, 
             });
         }
 
-        console.log(convertToUTC(startDate), convertToUTC(endDate))
+        //console.log(convertToUTC(startDate), convertToUTC(endDate))
 
         const request = await usersRB.generate_report_serah_terima(idBagian, idUser, convertToUTC(startDate), convertToUTC(endDate))
 
