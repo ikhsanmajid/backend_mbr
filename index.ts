@@ -4,10 +4,14 @@ import login from "./routes/login_router";
 import users from "./routes/users_aggregator"
 import cors, { CorsOptions } from "cors"
 import cookieParser from "cookie-parser";
+import dotenv from 'dotenv'
+import path from "path";
+
+dotenv.config({path: path.resolve(__dirname, '.env.local'), override: true})
 
 const corsOpttion: CorsOptions = {
     credentials: true,
-    origin: ["http://localhost:3000", "https://frontend-mbr.vercel.app", "http://localhost:8080", "https://mbr.ikhsanmajid.my.id", "http://10.42.0.1:3000", "http://10.42.0.243:3000"]
+    origin: ["http://localhost:3000", "https://frontend-mbr.vercel.app", "http://localhost:8080", "https://mbr.ikhsanmajid.my.id", "http://10.42.0.1:3000", "http://10.42.0.243:3000", "https://konimex.com:450/mbr"]
 }
 
 const app: Express = express()
