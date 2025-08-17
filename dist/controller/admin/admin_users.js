@@ -32,15 +32,6 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.add_user = add_user;
 exports.check_email = check_email;
@@ -58,423 +49,379 @@ exports.update_password = update_password;
 const adminUsers = __importStar(require("../../services/admin/admin_users_service"));
 const bcrypt = __importStar(require("bcrypt"));
 // Variabel POST = postData GET = getData
-function add_user(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        function hash_password(password) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const hashed = yield bcrypt.hash(password, 10);
-                return hashed;
+async function add_user(req, res, next) {
+    async function hash_password(password) {
+        const hashed = await bcrypt.hash(password, 10);
+        return hashed;
+    }
+    try {
+        let postData = {
+            nik: req.body.nik,
+            email: req.body.email,
+            nama: req.body.nama,
+            password: await hash_password(req.body.password),
+            isAdmin: false,
+            isActive: false,
+            dateCreated: new Date().toISOString()
+        };
+        const user = await adminUsers.add_user_model(postData);
+        if ('data' in user) {
+            res.status(200).json({
+                data: user.data,
+                message: "Tambah User Berhasil",
+                status: "success"
             });
         }
-        try {
-            let postData = {
-                nik: req.body.nik,
-                email: req.body.email,
-                nama: req.body.nama,
-                password: yield hash_password(req.body.password),
-                isAdmin: false,
-                isActive: false,
-                dateCreated: new Date().toISOString()
-            };
-            const user = yield adminUsers.add_user_model(postData);
-            if ('data' in user) {
+        else {
+            throw user;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
+}
+async function check_email(req, res, next) {
+    try {
+        let getData = {
+            email: req.query.email,
+        };
+        const user = await adminUsers.check_email_model(getData);
+        if ('data' in user) {
+            if (user.data !== null) {
+                res.status(200).json({
+                    message: "exist",
+                });
+            }
+            else {
+                res.status(200).json({
+                    message: "not exist"
+                });
+            }
+        }
+        else {
+            throw user;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
+}
+async function check_nik(req, res, next) {
+    try {
+        let getData = {
+            nik: req.query.nik,
+        };
+        const user = await adminUsers.check_nik_model(getData);
+        if ('data' in user) {
+            if (user.data !== null) {
+                res.status(200).json({
+                    message: "exist",
+                });
+            }
+            else {
+                res.status(200).json({
+                    message: "not exist"
+                });
+            }
+        }
+        else {
+            throw user;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
+}
+async function find_all(req, res, next) {
+    try {
+        const getData = {
+            isActive: req.query.is_active == undefined ? null : req.query.is_active == "true" ? true : false,
+            limit: req.query.limit == undefined ? null : req.query.limit,
+            offset: req.query.offset == undefined ? null : req.query.offset,
+            search_user: req.query.search_user == undefined ? null : req.query.search_user,
+            active: req.query.active == undefined ? null : req.query.active
+        };
+        const user = await adminUsers.find_all_users_model(getData);
+        if ("data" in user) {
+            if (user.data)
                 res.status(200).json({
                     data: user.data,
-                    message: "Tambah User Berhasil",
+                    count: user.count,
                     status: "success"
                 });
-            }
-            else {
-                throw user;
-            }
         }
-        catch (error) {
-            return next(error);
+        else {
+            throw user;
         }
-    });
+    }
+    catch (error) {
+        return next(error);
+    }
 }
-function check_email(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            let getData = {
-                email: req.query.email,
-            };
-            const user = yield adminUsers.check_email_model(getData);
-            if ('data' in user) {
-                if (user.data !== null) {
-                    res.status(200).json({
-                        message: "exist",
-                    });
-                }
-                else {
-                    res.status(200).json({
-                        message: "not exist"
-                    });
-                }
-            }
-            else {
-                throw user;
-            }
-        }
-        catch (error) {
-            return next(error);
-        }
-    });
-}
-function check_nik(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            let getData = {
-                nik: req.query.nik,
-            };
-            const user = yield adminUsers.check_nik_model(getData);
-            if ('data' in user) {
-                if (user.data !== null) {
-                    res.status(200).json({
-                        message: "exist",
-                    });
-                }
-                else {
-                    res.status(200).json({
-                        message: "not exist"
-                    });
-                }
-            }
-            else {
-                throw user;
-            }
-        }
-        catch (error) {
-            return next(error);
-        }
-    });
-}
-function find_all(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const getData = {
-                isActive: req.query.is_active == undefined ? null : req.query.is_active == "true" ? true : false,
-                limit: req.query.limit == undefined ? null : req.query.limit,
-                offset: req.query.offset == undefined ? null : req.query.offset,
-                search_user: req.query.search_user == undefined ? null : req.query.search_user,
-                active: req.query.active == undefined ? null : req.query.active
-            };
-            const user = yield adminUsers.find_all_users_model(getData);
-            if ("data" in user) {
-                if (user.data)
-                    res.status(200).json({
-                        data: user.data,
-                        count: user.count,
-                        status: "success"
-                    });
-            }
-            else {
-                throw user;
-            }
-        }
-        catch (error) {
-            return next(error);
-        }
-    });
-}
-function find_user(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            let getData = {
-                email: req.query.email,
-            };
-            const user = yield adminUsers.find_user_model(getData);
-            if ("data" in user) {
-                res.status(200).json({
-                    data: user.data,
-                    status: "success"
-                });
-            }
-            else {
-                throw user;
-            }
-        }
-        catch (error) {
-            return next(error);
-        }
-    });
-}
-function detail_user(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e, _f, _g;
-        try {
-            let getData = {
-                id: parseInt(req.params.id)
-            };
-            const user = yield adminUsers.get_detail_user_model(getData);
-            let responseData = {};
-            if ("data" in user) {
-                let bagianjabatan = [];
-                (_a = user.data) === null || _a === void 0 ? void 0 : _a.jabatanBagian.map((item) => {
-                    bagianjabatan.push({
-                        idBagianJabatan: item.id,
-                        idBagianJabatanKey: item.idBagianJabatan,
-                        bagianJabatan: {
-                            bagian: item.idBagianJabatanFK.idBagianFK,
-                            jabatan: item.idBagianJabatanFK.idJabatanFK,
-                        }
-                    });
-                });
-                responseData = {
-                    id: (_b = user.data) === null || _b === void 0 ? void 0 : _b.id,
-                    email: (_c = user.data) === null || _c === void 0 ? void 0 : _c.email,
-                    nik: (_d = user.data) === null || _d === void 0 ? void 0 : _d.nik,
-                    nama: (_e = user.data) === null || _e === void 0 ? void 0 : _e.nama,
-                    isActive: (_f = user.data) === null || _f === void 0 ? void 0 : _f.isActive,
-                    isAdmin: (_g = user.data) === null || _g === void 0 ? void 0 : _g.isAdmin,
-                    bagianjabatan: bagianjabatan
-                };
-                res.status(200).json({
-                    data: responseData,
-                    status: "success"
-                });
-            }
-            else {
-                throw user;
-            }
-        }
-        catch (error) {
-            return next(error);
-        }
-    });
-}
-function update_user(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
-        function hash_password(password) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (password == "") {
-                    return null;
-                }
-                const hashed = yield bcrypt.hash(password, 10);
-                return hashed;
+async function find_user(req, res, next) {
+    try {
+        let getData = {
+            email: req.query.email,
+        };
+        const user = await adminUsers.find_user_model(getData);
+        if ("data" in user) {
+            res.status(200).json({
+                data: user.data,
+                status: "success"
             });
         }
-        try {
-            const postData = {
-                id: req.params.id,
-                nik: ((_a = req.body) === null || _a === void 0 ? void 0 : _a.nik) == undefined ? undefined : (_b = req.body) === null || _b === void 0 ? void 0 : _b.nik,
-                nama: ((_c = req.body) === null || _c === void 0 ? void 0 : _c.nama) == undefined ? undefined : (_d = req.body) === null || _d === void 0 ? void 0 : _d.nama,
-                email: ((_e = req.body) === null || _e === void 0 ? void 0 : _e.email) == undefined ? undefined : (_f = req.body) === null || _f === void 0 ? void 0 : _f.email,
-                password: ((_g = req.body) === null || _g === void 0 ? void 0 : _g.password) == undefined ? undefined : yield hash_password((_h = req.body) === null || _h === void 0 ? void 0 : _h.password),
-                isAdmin: ((_j = req.body) === null || _j === void 0 ? void 0 : _j.is_admin) == undefined ? undefined : ((_k = req.body) === null || _k === void 0 ? void 0 : _k.is_admin) == "true" ? true : false,
-                isActive: ((_l = req.body) === null || _l === void 0 ? void 0 : _l.is_active) == undefined ? undefined : ((_m = req.body) === null || _m === void 0 ? void 0 : _m.is_active) == "true" ? true : false,
-            };
-            const user = yield adminUsers.update_user_model(postData);
-            if ("data" in user) {
-                res.status(200).json({
-                    data: user.data,
-                    message: "update user berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw user;
-            }
+        else {
+            throw user;
         }
-        catch (error) {
-            return next(error);
-        }
-    });
+    }
+    catch (error) {
+        return next(error);
+    }
 }
-function hash_password_generate(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
-        function hash_password(password) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (password == "") {
-                    return null;
-                }
-                const hashed = yield bcrypt.hash(password, 10);
-                return hashed;
+async function detail_user(req, res, next) {
+    try {
+        let getData = {
+            id: parseInt(req.params.id)
+        };
+        const user = await adminUsers.get_detail_user_model(getData);
+        let responseData = {};
+        if ("data" in user) {
+            let bagianjabatan = [];
+            user.data?.jabatanBagian.map((item) => {
+                bagianjabatan.push({
+                    idBagianJabatan: item.id,
+                    idBagianJabatanKey: item.idBagianJabatan,
+                    bagianJabatan: {
+                        bagian: item.idBagianJabatanFK.idBagianFK,
+                        jabatan: item.idBagianJabatanFK.idJabatanFK,
+                    }
+                });
+            });
+            responseData = {
+                id: user.data?.id,
+                email: user.data?.email,
+                nik: user.data?.nik,
+                nama: user.data?.nama,
+                isActive: user.data?.isActive,
+                isAdmin: user.data?.isAdmin,
+                bagianjabatan: bagianjabatan
+            };
+            res.status(200).json({
+                data: responseData,
+                status: "success"
             });
         }
-        try {
-            const postData = {
-                password: ((_a = req.body) === null || _a === void 0 ? void 0 : _a.password) == undefined ? undefined : yield hash_password((_b = req.body) === null || _b === void 0 ? void 0 : _b.password),
-            };
+        else {
+            throw user;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
+}
+async function update_user(req, res, next) {
+    async function hash_password(password) {
+        if (password == "") {
+            return null;
+        }
+        const hashed = await bcrypt.hash(password, 10);
+        return hashed;
+    }
+    try {
+        const postData = {
+            id: req.params.id,
+            nik: req.body?.nik == undefined ? undefined : req.body?.nik,
+            nama: req.body?.nama == undefined ? undefined : req.body?.nama,
+            email: req.body?.email == undefined ? undefined : req.body?.email,
+            password: req.body?.password == undefined ? undefined : await hash_password(req.body?.password),
+            isAdmin: req.body?.is_admin == undefined ? undefined : req.body?.is_admin == "true" ? true : false,
+            isActive: req.body?.is_active == undefined ? undefined : req.body?.is_active == "true" ? true : false,
+        };
+        const user = await adminUsers.update_user_model(postData);
+        if ("data" in user) {
+            res.status(200).json({
+                data: user.data,
+                message: "update user berhasil",
+                status: "success"
+            });
+        }
+        else {
+            throw user;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
+}
+async function hash_password_generate(req, res, next) {
+    async function hash_password(password) {
+        if (password == "") {
+            return null;
+        }
+        const hashed = await bcrypt.hash(password, 10);
+        return hashed;
+    }
+    try {
+        const postData = {
+            password: req.body?.password == undefined ? undefined : await hash_password(req.body?.password),
+        };
+        return res.status(200).json({
+            password: postData.password
+        });
+    }
+    catch (error) {
+        return next(error);
+    }
+}
+async function hard_delete_user(req, res, next) {
+    try {
+        const paramData = {
+            id: parseInt(req.params.id)
+        };
+        const user = await adminUsers.delete_users_model(paramData);
+        if ("data" in user) {
+            res.status(200).json({
+                data: user.data,
+                message: "delete user berhasil",
+                status: "success"
+            });
+        }
+        else {
+            throw user;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
+}
+async function delete_user_department_employment(req, res, next) {
+    try {
+        const paramData = {
+            id: parseInt(req.params.id)
+        };
+        const deleteProcess = await adminUsers.delete_user_department_model(paramData);
+        if ("data" in deleteProcess) {
+            res.status(200).json({
+                data: deleteProcess.data,
+                message: "delete jabatan berhasil",
+                status: "success"
+            });
+        }
+        else {
+            throw deleteProcess;
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+}
+async function update_user_department_employment(req, res, next) {
+    try {
+        const postData = {
+            id: parseInt(req.body.id),
+            idBagianJabatan: parseInt(req.body.idBagianJabatan)
+        };
+        const updateProcess = await adminUsers.update_user_department_model(postData);
+        if ("data" in updateProcess) {
             return res.status(200).json({
-                password: postData.password
+                data: updateProcess.data,
+                message: "update jabatan berhasil",
+                status: "success"
             });
         }
-        catch (error) {
-            return next(error);
+        else {
+            throw updateProcess;
         }
-    });
+    }
+    catch (error) {
+        next(error);
+    }
 }
-function hard_delete_user(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const paramData = {
-                id: parseInt(req.params.id)
-            };
-            const user = yield adminUsers.delete_users_model(paramData);
-            if ("data" in user) {
-                res.status(200).json({
-                    data: user.data,
-                    message: "delete user berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw user;
-            }
-        }
-        catch (error) {
-            return next(error);
-        }
-    });
-}
-function delete_user_department_employment(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const paramData = {
-                id: parseInt(req.params.id)
-            };
-            const deleteProcess = yield adminUsers.delete_user_department_model(paramData);
-            if ("data" in deleteProcess) {
-                res.status(200).json({
-                    data: deleteProcess.data,
-                    message: "delete jabatan berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw deleteProcess;
-            }
-        }
-        catch (error) {
-            next(error);
-        }
-    });
-}
-function update_user_department_employment(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const postData = {
-                id: parseInt(req.body.id),
-                idBagianJabatan: parseInt(req.body.idBagianJabatan)
-            };
-            const updateProcess = yield adminUsers.update_user_department_model(postData);
-            if ("data" in updateProcess) {
-                return res.status(200).json({
-                    data: updateProcess.data,
-                    message: "update jabatan berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw updateProcess;
-            }
-        }
-        catch (error) {
-            next(error);
-        }
-    });
-}
-function add_user_department_employment(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const postData = {
-                idUser: parseInt(req.body.idUser),
-                idBagianJabatan: parseInt(req.body.idBagianJabatan)
-            };
-            //console.log(postData)
-            const addProcess = yield adminUsers.add_user_department_model(postData);
-            if ("data" in addProcess) {
-                return res.status(200).json({
-                    data: addProcess.data,
-                    message: "Tambah Jabatan Berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw addProcess;
-            }
-        }
-        catch (error) {
-            next(error);
-        }
-    });
-}
-function update_password(req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
-        function hash_password(password) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const hashed = yield bcrypt.hash(password, 10);
-                return hashed;
+async function add_user_department_employment(req, res, next) {
+    try {
+        const postData = {
+            idUser: parseInt(req.body.idUser),
+            idBagianJabatan: parseInt(req.body.idBagianJabatan)
+        };
+        //console.log(postData)
+        const addProcess = await adminUsers.add_user_department_model(postData);
+        if ("data" in addProcess) {
+            return res.status(200).json({
+                data: addProcess.data,
+                message: "Tambah Jabatan Berhasil",
+                status: "success"
             });
         }
-        try {
-            //console.log(res.locals)
-            // const postData = {
-            //     id: Number(req.params.id),
-            //     password: req.body?.password == undefined ? undefined : req.body?.password,
-            //     confirm_password: req.body?.confirm_password == undefined ? undefined : req.body?.confirm_password,
-            // }
-            const id = Number(req.params.id);
-            const password = (_a = req.body) === null || _a === void 0 ? void 0 : _a.password;
-            const confirm_password = (_b = req.body) === null || _b === void 0 ? void 0 : _b.confirm_password;
-            console.log(id, password, confirm_password);
-            if (res.locals.idUser != id) {
-                return res.status(400).json({
-                    message: "Tidak bisa mengubah password user lain",
-                    status: "error"
-                });
-            }
-            if (password.length < 8 && confirm_password.length < 8) {
-                return res.status(400).json({
-                    message: "Password minimal 8 karakter",
-                    status: "error"
-                });
-            }
-            if (password !== confirm_password) {
-                return res.status(400).json({
-                    message: "Password tidak sama",
-                    status: "error"
-                });
-            }
-            if (!password.match(".*[0-9].*") && !confirm_password.match(".*[0-9].*")) {
-                return res.status(400).json({
-                    message: "Password minimal terdapat 1 angka",
-                    status: "error"
-                });
-            }
-            // Jika password tidak terdapat simbol
-            if (!password.match(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*") && !confirm_password.match(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*")) {
-                return res.status(400).json({
-                    message: "Password minimal terdapat 1 simbol",
-                    status: "error"
-                });
-            }
-            // Jika password tidak terdapat huruf kapital
-            if (!password.match(".*[A-Z].*") && !confirm_password.match(".*[A-Z].*")) {
-                return res.status(400).json({
-                    message: "Password minimal terdapat 1 huruf kapital",
-                    status: "error"
-                });
-            }
-            const hashedPassword = yield hash_password(password);
-            const user = yield adminUsers.update_user_password_model(id, hashedPassword);
-            if ("data" in user) {
-                res.status(200).json({
-                    data: user.data,
-                    message: "update password berhasil",
-                    status: "success"
-                });
-            }
-            else {
-                throw user;
-            }
+        else {
+            throw addProcess;
         }
-        catch (error) {
-            return next(error);
+    }
+    catch (error) {
+        next(error);
+    }
+}
+async function update_password(req, res, next) {
+    async function hash_password(password) {
+        const hashed = await bcrypt.hash(password, 10);
+        return hashed;
+    }
+    try {
+        const id = Number(req.params.id);
+        const password = req.body?.password;
+        const confirm_password = req.body?.confirm_password;
+        //console.log(id, password, confirm_password)
+        if (res.locals.idUser != id) {
+            return res.status(400).json({
+                message: "Tidak bisa mengubah password user lain",
+                status: "error"
+            });
         }
-    });
+        if (password.length < 8 && confirm_password.length < 8) {
+            return res.status(400).json({
+                message: "Password minimal 8 karakter",
+                status: "error"
+            });
+        }
+        if (password !== confirm_password) {
+            return res.status(400).json({
+                message: "Password tidak sama",
+                status: "error"
+            });
+        }
+        if (!password.match(".*[0-9].*") && !confirm_password.match(".*[0-9].*")) {
+            return res.status(400).json({
+                message: "Password minimal terdapat 1 angka",
+                status: "error"
+            });
+        }
+        // Jika password tidak terdapat simbol
+        if (!password.match(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*") && !confirm_password.match(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*")) {
+            return res.status(400).json({
+                message: "Password minimal terdapat 1 simbol",
+                status: "error"
+            });
+        }
+        // Jika password tidak terdapat huruf kapital
+        if (!password.match(".*[A-Z].*") && !confirm_password.match(".*[A-Z].*")) {
+            return res.status(400).json({
+                message: "Password minimal terdapat 1 huruf kapital",
+                status: "error"
+            });
+        }
+        const hashedPassword = await hash_password(password);
+        const user = await adminUsers.update_user_password_model(id, hashedPassword);
+        if ("data" in user) {
+            res.status(200).json({
+                data: user.data,
+                message: "update password berhasil",
+                status: "success"
+            });
+        }
+        else {
+            throw user;
+        }
+    }
+    catch (error) {
+        return next(error);
+    }
 }

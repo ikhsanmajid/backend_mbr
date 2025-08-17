@@ -342,8 +342,20 @@ export async function accept_permintaan(data: { id: string, action: string, time
             //console.log(findRB)
 
             for (const detail of findRB) {
-                const data: NomorMBRList[] = Array()
-                const year = new Date().getFullYear()
+                // const data: NomorMBRList[] = Array()
+                // const year = new Date().getFullYear()
+
+                const dataBatch: NomorMBRList[] = [];
+                const year = new Date().getFullYear();
+                const kategori = detail.idProdukFK?.idKategori ?? 0;
+                const jenis = detail.idProdukFK?.idBagianFK?.idJenisBagian ?? 0;
+
+                const lockKey =
+                    BigInt(year) * 1_000_000_000n +
+                    BigInt(kategori) * 1_000_000n +
+                    BigInt(jenis);
+
+                await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey}::bigint)`;
 
                 const checkNomor = await tx.nomormbr.findFirst({
                     where: {
@@ -365,7 +377,7 @@ export async function accept_permintaan(data: { id: string, action: string, time
                         AND: [{
                             idDetailPermintaanFk: {
                                 idProdukFK: {
-                                    idKategori: detail.idProdukFK?.idKategori
+                                    idKategori: kategori
                                 }
                             }
                         }, {
@@ -374,7 +386,7 @@ export async function accept_permintaan(data: { id: string, action: string, time
                             idDetailPermintaanFk: {
                                 idProdukFK: {
                                     idBagianFK: {
-                                        idJenisBagian: detail.idProdukFK?.idBagianFK?.idJenisBagian
+                                        idJenisBagian: jenis
                                     }
                                 }
                             }
@@ -385,30 +397,43 @@ export async function accept_permintaan(data: { id: string, action: string, time
                     }
                 })
 
-                if (findNomor._max.nomorUrut != null) {
-                    for (let i = 0; i < detail.jumlah; i++) {
-                        data.push({
-                            idDetailPermintaan: Number(detail.id),
-                            nomorUrut: (parseInt(findNomor._max.nomorUrut) + (i + 1)).toString().padStart(6, "0"),
-                            status: Status["ACTIVE"],
-                            tahun: year,
-                        })
-                    }
-                } else {
-                    for (let i = 0; i < detail.jumlah; i++) {
-                        data.push({
-                            idDetailPermintaan: Number(detail.id),
-                            nomorUrut: (parseInt(detail.idProdukFK?.idKategoriFK.startingNumber!) + (i + 1)).toString().padStart(6, "0"),
-                            status: Status["ACTIVE"],
-                            tahun: year,
-                        })
-                    }
+                const start = findNomor._max.nomorUrut
+                    ? parseInt(findNomor._max.nomorUrut, 10) + 1
+                    : parseInt(detail.idProdukFK?.idKategoriFK.startingNumber!, 10) + 1;
+
+                // if (findNomor._max.nomorUrut != null) {
+                //     for (let i = 0; i < detail.jumlah; i++) {
+                //         data.push({
+                //             idDetailPermintaan: Number(detail.id),
+                //             nomorUrut: (parseInt(findNomor._max.nomorUrut) + (i + 1)).toString().padStart(6, "0"),
+                //             status: Status["ACTIVE"],
+                //             tahun: year,
+                //         })
+                //     }
+                // } else {
+                //     for (let i = 0; i < detail.jumlah; i++) {
+                //         data.push({
+                //             idDetailPermintaan: Number(detail.id),
+                //             nomorUrut: (parseInt(detail.idProdukFK?.idKategoriFK.startingNumber!) + (i + 1)).toString().padStart(6, "0"),
+                //             status: Status["ACTIVE"],
+                //             tahun: year,
+                //         })
+                //     }
+                // }
+
+                for (let i = 0; i < detail.jumlah; i++) {
+                    dataBatch.push({
+                        idDetailPermintaan: Number(detail.id),
+                        nomorUrut: String(start + i).padStart(6, "0"),
+                        status: Status["ACTIVE"],
+                        tahun: year,
+                    });
                 }
 
                 //console.log(data)
 
-                const addNomorRB = await tx.nomormbr.createMany({
-                    data: data
+                await tx.nomormbr.createMany({
+                    data: dataBatch
                 })
             }
 
@@ -454,7 +479,7 @@ export async function reject_permintaan(data: { id: string, action: string, time
             select: {
                 id: true,
                 timeConfirmed: true,
-                status: true, 
+                status: true,
                 idPermintaanUsersCreatedFK: {
                     select: {
                         email: true
@@ -484,14 +509,6 @@ export async function reject_permintaan(data: { id: string, action: string, time
         throw error
     }
 }
-
-// keyword: req.query.keyword == undefined ? null : String(req.query.keyword),
-// idBagian: req.query.idBagian == undefined ? null : Number(req.query.idBagian),
-// idProduk: req.query.idProduk == undefined ? null : Number(req.query.idProduk),
-// status: req.query.status == undefined ? null : checkStatus(String(req.query.status)),
-// used: req.query.used == undefined ? null : checkUsed(String(req.query.used)),
-// limit: req.query.limit == undefined ? null : Number(req.query.limit),
-// offset: req.query.offset == undefined ? null : Number(req.query.offset),
 
 //ANCHOR - Mengambil semua permintaan sesuai status
 export async function get_permintaan(data: { keyword: null | string, idBagian: number | null, idProduk: number | null, status: Konfirmasi | null, used: boolean | null, year: number | null, limit: number | null, offset: number | null }): Promise<ResultModel<ModifiedPermintaan[] | null> | { data: string }> {
@@ -1181,7 +1198,6 @@ export async function get_rb_return_by_bagian(id: number, status: string | null,
 
         return { data: result, count: getCount[0].count }
     } catch (error) {
-        console.log(error)
         throw error
     }
 }

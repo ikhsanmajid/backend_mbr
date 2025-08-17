@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.handling_error = handling_error;
 const library_1 = require("@prisma/client/runtime/library");
 function handling_error(error, custom) {
-    var _a, _b;
     let errorMsg = {
         type: "error",
     };
@@ -12,8 +11,8 @@ function handling_error(error, custom) {
             lib: "prisma",
             code: error.code,
             message: error.message,
-            modelName: (_a = error.meta) === null || _a === void 0 ? void 0 : _a.modelName,
-            target: (_b = error.meta) === null || _b === void 0 ? void 0 : _b.target,
+            modelName: error.meta?.modelName,
+            target: error.meta?.target,
             stack: error.stack
         });
         //console.log(error.meta)
@@ -28,8 +27,8 @@ function handling_error(error, custom) {
     }
     else {
         Object.assign(errorMsg, {
-            code: custom === null || custom === void 0 ? void 0 : custom.code,
-            message: custom === null || custom === void 0 ? void 0 : custom.message
+            code: custom?.code,
+            message: custom?.message
         });
     }
     //throw error;

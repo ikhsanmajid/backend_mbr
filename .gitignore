@@ -1,5 +1,7 @@
 node_modules
 .env
 .env.*
+logs/*
 # Keep environment variables out of version control
 .vercel
+dist/*
