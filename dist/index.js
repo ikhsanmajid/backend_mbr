@@ -14,7 +14,7 @@ const path_1 = __importDefault(require("path"));
 dotenv_1.default.config({ path: path_1.default.resolve(__dirname, '.env.local'), override: true });
 const corsOpttion = {
     credentials: true,
-    origin: ["http://localhost:3000", "https://frontend-mbr.vercel.app", "http://localhost:8080", "https://mbr.ikhsanmajid.my.id", "http://10.42.0.1:3000", "http://10.42.0.243:3000", "https://konimex.com:450/mbr"]
+    origin: ["http://localhost:3000", "https://konimex.com:450/mbr"]
 };
 const app = (0, express_1.default)();
 const port = 3001;

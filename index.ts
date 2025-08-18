@@ -11,7 +11,7 @@ dotenv.config({path: path.resolve(__dirname, '.env.local'), override: true})
 
 const corsOpttion: CorsOptions = {
     credentials: true,
-    origin: ["http://localhost:3000", "https://konimex.com:450/mbr"]
+    origin: ["http://localhost:3000", "http://localhost:450", "https://konimex:450"]
 }
 
 const app: Express = express()
