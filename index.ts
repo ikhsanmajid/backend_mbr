@@ -25,9 +25,11 @@ const port: number = 3001
 
 app.use(express.json())
 app.use(cookieParser())
-app.use(cors(corsOpttion))
+
 
 const router: Router = Router()
+
+router.use(cors(corsOpttion))
 
 router.get("/", (req: Request, res: Response) => {
     res.send("It Works!")
