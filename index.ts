@@ -21,17 +21,21 @@ app.use(express.json())
 app.use(cookieParser())
 app.use(cors(corsOpttion))
 
-app.get("/", (req: Request, res: Response) => {
+const router: Router = Router()
+
+router.get("/", (req: Request, res: Response) => {
     res.send("It Works!")
 })
 
-app.get("/time", (req: Request, res: Response) => {
+router.get("/time", (req: Request, res: Response) => {
     res.json({ time: new Date().toISOString() })
 })
 
-app.use("/login", login)
-app.use("/admin", admin)
-app.use("/users", users)
+router.use("/login", login)
+router.use("/admin", admin)
+router.use("/users", users)
+
+app.use("/mbr_backend", router)
 
 app.listen(port, () => {
     console.log(`App listening on port ${port}`)
