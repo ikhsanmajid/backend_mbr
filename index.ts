@@ -10,7 +10,7 @@ dotenv.config()
 
 const corsOpttion: CorsOptions = {
     credentials: true,
-    origin: ["http://localhost:3000", "http://localhost:450", "https://konimex:450"]
+    origin: ["http://localhost:3000", "http://localhost:450", "https://konimex:450", "https://frontend-mbr.vercel.app"]
 }
 
 const app: Express = express()
