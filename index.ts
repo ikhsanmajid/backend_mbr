@@ -5,9 +5,8 @@ import users from "./routes/users_aggregator"
 import cors, { CorsOptions } from "cors"
 import cookieParser from "cookie-parser";
 import dotenv from 'dotenv'
-import path from "path";
 
-dotenv.config({path: path.resolve(__dirname, '.env.local'), override: true})
+dotenv.config()
 
 const corsOpttion: CorsOptions = {
     credentials: true,

@@ -1,8 +1,7 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv'
-import path from "path";
 
-dotenv.config({path: path.resolve(__dirname, '../.env.local'), override: true})
+dotenv.config()
 
 export const transporter = nodemailer.createTransport({
     host: process.env.MAILER_URL! as string,

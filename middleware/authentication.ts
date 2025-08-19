@@ -53,8 +53,8 @@ export const local = new LocalStrategy({ usernameField: "email" }, async functio
         return done(null, result)
 
     } catch (e) {
-
         return done({ code: "L999", message: "Backend Error", stack: e }, false)
+
     }
 })
 
