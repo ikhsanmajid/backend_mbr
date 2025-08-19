@@ -43,18 +43,22 @@ const users_aggregator_1 = __importDefault(require("./routes/users_aggregator"))
 const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const path_1 = __importDefault(require("path"));
-dotenv_1.default.config({ path: path_1.default.resolve(__dirname, '.env.local'), override: true });
+dotenv_1.default.config();
 const corsOpttion = {
     credentials: true,
-    origin: ["http://localhost:3000", "http://localhost:450", "https://konimex:450"]
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:450",
+        "https://konimex:450",
+        "https://frontend-mbr.vercel.app",
+    ],
 };
 const app = (0, express_1.default)();
 const port = 3001;
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
-app.use((0, cors_1.default)(corsOpttion));
 const router = (0, express_1.Router)();
+router.use((0, cors_1.default)(corsOpttion));
 router.get("/", (req, res) => {
     res.send("It Works!");
 });
